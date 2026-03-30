@@ -35,6 +35,17 @@ describe("parseAppleMusicUrl", () => {
     });
   });
 
+  it("parses a beta.music.apple.com URL", () => {
+    const result = parseAppleMusicUrl(
+      "https://beta.music.apple.com/ro/album/honora/1861644307"
+    );
+    expect(result).toEqual({
+      type: "album",
+      id: "1861644307",
+      storefront: "ro",
+    });
+  });
+
   it("returns null for invalid URL", () => {
     const result = parseAppleMusicUrl("https://example.com/not-apple");
     expect(result).toBeNull();

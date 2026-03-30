@@ -15,7 +15,7 @@ export function parseAppleMusicUrl(url: string): ParsedUrl | null {
     return null;
   }
 
-  if (parsed.hostname !== "music.apple.com") return null;
+  if (!parsed.hostname.endsWith("music.apple.com")) return null;
 
   // Path: /{storefront}/{type}/{slug}/{id}
   const segments = parsed.pathname.split("/").filter(Boolean);
