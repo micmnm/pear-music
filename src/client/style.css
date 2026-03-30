@@ -1,0 +1,174 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #111;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  text-align: center;
+  position: relative;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Artwork */
+#artwork {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  background: #222;
+}
+
+/* Track info */
+#track-info {
+  margin-bottom: 16px;
+}
+
+#album-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+#artist-name {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #aaa;
+}
+
+/* Embed */
+#embed-container {
+  margin-bottom: 20px;
+}
+
+#apple-embed {
+  width: 100%;
+  height: 175px;
+  border-radius: 12px;
+  background: #222;
+}
+
+/* Controls */
+#controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+#shuffle-btn {
+  background: #fa2d48;
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 12px 40px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#shuffle-btn:hover {
+  background: #e0263f;
+}
+
+/* Add button */
+#add-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: #333;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#add-btn:hover {
+  background: #555;
+}
+
+/* Add overlay */
+#add-overlay {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  z-index: 10;
+}
+
+#add-form {
+  display: flex;
+  gap: 8px;
+  background: #222;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+#url-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 12px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #111;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+#url-submit,
+#url-cancel {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+#url-submit {
+  background: #fa2d48;
+  color: #fff;
+}
+
+#url-cancel {
+  background: #444;
+  color: #fff;
+}
+
+#add-error {
+  color: #fa2d48;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  text-align: right;
+}
+
+/* Empty state */
+#empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #888;
+  font-size: 1.1rem;
+}
