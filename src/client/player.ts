@@ -14,7 +14,7 @@ export function buildEmbedUrl(item: LibraryItem): string {
     // fall back to "us"
   }
 
-  return `${EMBED_BASE}/${storefront}/${item.type}/${item.id}`;
+  return `${EMBED_BASE}/${storefront}/${item.type}/${item.id}?autoplay=1`;
 }
 
 export function loadEmbed(iframe: HTMLIFrameElement, item: LibraryItem): void {
