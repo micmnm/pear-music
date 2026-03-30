@@ -11,12 +11,14 @@ import {
 import "./style.css";
 
 const iframe = document.getElementById("apple-embed") as HTMLIFrameElement;
+let isPlaying = false;
 
 async function playShuffle(): Promise<void> {
   try {
     const item = await shuffle();
     showPlayerView(item);
     loadEmbed(iframe, item);
+    isPlaying = true;
   } catch {
     // Library might be empty — ignore
   }
@@ -29,8 +31,8 @@ async function handleAdd(): Promise<void> {
   try {
     await addItem(url);
     hideAddOverlay();
-    // If this is the first item, auto-shuffle to start playing
-    await playShuffle();
+    // Only auto-shuffle if nothing is playing yet
+    if (!isPlaying) await playShuffle();
   } catch (err) {
     showAddError(err instanceof Error ? err.message : "Failed to add");
   }
