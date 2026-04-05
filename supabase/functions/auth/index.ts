@@ -19,24 +19,45 @@ function getAdminClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 }
 
-// Generate a Supabase Auth session for a user by creating a magic link token
-// and returning the OTP properties so the client can call verifyOtp()
+// Generate a Supabase Auth session by creating a magic link and verifying it
+// server-side, returning the access_token and refresh_token to the client.
 async function createSessionForUser(
-  db: ReturnType<typeof createClient>,
   email: string
-): Promise<{ email: string; token_hash: string }> {
-  const { data, error } = await db.auth.admin.generateLink({
+): Promise<{ access_token: string; refresh_token: string }> {
+  const adminDb = getAdminClient();
+
+  const { data: linkData, error: linkError } = await adminDb.auth.admin.generateLink({
     type: "magiclink",
     email,
   });
 
-  if (error || !data?.properties?.hashed_token) {
-    throw new Error(error?.message || "Failed to generate session link");
+  if (linkError || !linkData?.properties?.hashed_token) {
+    throw new Error(linkError?.message || "Failed to generate session link");
   }
 
+  // Verify the token server-side to get a session
+  const verifyUrl = `${SUPABASE_URL}/auth/v1/verify`;
+  const verifyRes = await fetch(verifyUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_SERVICE_KEY,
+    },
+    body: JSON.stringify({
+      type: "magiclink",
+      token_hash: linkData.properties.hashed_token,
+    }),
+  });
+
+  if (!verifyRes.ok) {
+    const err = await verifyRes.json();
+    throw new Error(err.msg || "Failed to verify session");
+  }
+
+  const session = await verifyRes.json();
   return {
-    email,
-    token_hash: data.properties.hashed_token,
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
   };
 }
 
@@ -161,7 +182,7 @@ Deno.serve(async (req) => {
       });
 
       // Generate session via magic link
-      const session = await createSessionForUser(db, email);
+      const session = await createSessionForUser(email);
       return jsonResponse({ ...session, userId });
     }
 
@@ -242,7 +263,7 @@ Deno.serve(async (req) => {
       const username = cred.users.username;
       const email = `${username}@pear.music`;
 
-      const session = await createSessionForUser(db, email);
+      const session = await createSessionForUser(email);
       return jsonResponse({ ...session, userId: cred.user_id });
     }
 

@@ -18,6 +18,14 @@ export async function checkAppState(): Promise<"setup" | "login" | "authenticate
   return "login";
 }
 
+async function setSessionFromResponse(data: { access_token: string; refresh_token: string }): Promise<void> {
+  const { error } = await supabase.auth.setSession({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function register(username: string): Promise<void> {
   const optionsRes = await supabase.functions.invoke("auth", {
     body: { action: "register-options", username },
@@ -33,14 +41,7 @@ export async function register(username: string): Promise<void> {
   });
   if (verifyRes.error) throw new Error(verifyRes.error.message);
 
-  // Exchange the magic link token for a real Supabase session
-  const { email, token_hash } = verifyRes.data;
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token: token_hash,
-    type: "magiclink",
-  });
-  if (error) throw new Error(error.message);
+  await setSessionFromResponse(verifyRes.data);
 }
 
 export async function login(): Promise<void> {
@@ -58,12 +59,5 @@ export async function login(): Promise<void> {
   });
   if (verifyRes.error) throw new Error(verifyRes.error.message);
 
-  // Exchange the magic link token for a real Supabase session
-  const { email, token_hash } = verifyRes.data;
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token: token_hash,
-    type: "magiclink",
-  });
-  if (error) throw new Error(error.message);
+  await setSessionFromResponse(verifyRes.data);
 }
