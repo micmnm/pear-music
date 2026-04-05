@@ -12,43 +12,30 @@ const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RP_NAME = "Pear Music";
 const RP_ID = Deno.env.get("WEBAUTHN_RP_ID") || "music.mltru.com";
 const RP_ORIGIN = Deno.env.get("WEBAUTHN_ORIGIN") || "https://music.mltru.com";
-const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET")!;
 
 function getAdminClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 }
 
-async function mintJwt(userId: string): Promise<string> {
-  const header = { alg: "HS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    sub: userId,
-    role: "authenticated",
-    iss: "pear-music",
-    iat: now,
-    exp: now + 86400,
+// Generate a Supabase Auth session for a user by creating a magic link token
+// and returning the OTP properties so the client can call verifyOtp()
+async function createSessionForUser(
+  db: ReturnType<typeof createClient>,
+  email: string
+): Promise<{ email: string; token_hash: string }> {
+  const { data, error } = await db.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+
+  if (error || !data?.properties?.hashed_token) {
+    throw new Error(error?.message || "Failed to generate session link");
+  }
+
+  return {
+    email,
+    token_hash: data.properties.hashed_token,
   };
-
-  const encoder = new TextEncoder();
-  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, "");
-  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, "");
-  const data = encoder.encode(`${headerB64}.${payloadB64}`);
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(JWT_SECRET),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign("HMAC", key, data);
-  const sigB64 = base64Encode(new Uint8Array(signature))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-
-  return `${headerB64}.${payloadB64}.${sigB64}`;
 }
 
 Deno.serve(async (req) => {
@@ -128,26 +115,45 @@ Deno.serve(async (req) => {
       }
 
       const { credential, credentialDeviceType } = verification.registrationInfo;
+      const username = challenge.metadata.username;
+      const email = `${username}@pear.music`;
 
-      const { data: user } = await db
-        .from("users")
-        .insert({
-          username: challenge.metadata.username,
-          display_name: challenge.metadata.username,
-        })
-        .select()
-        .single();
+      // Create Supabase Auth user
+      const { data: authUser, error: authError } =
+        await db.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: { username },
+        });
 
+      if (authError) {
+        return Response.json(
+          { error: authError.message },
+          { status: 500 }
+        );
+      }
+
+      const userId = authUser.user.id;
+
+      // Store user in our users table
+      await db.from("users").insert({
+        id: userId,
+        username,
+        display_name: username,
+      });
+
+      // Store WebAuthn credential
       await db.from("user_credentials").insert({
-        user_id: user!.id,
+        user_id: userId,
         credential_id: base64Encode(credential.id),
         public_key: base64Encode(credential.publicKey),
         sign_count: credential.counter,
         device_info: credentialDeviceType,
       });
 
-      const token = await mintJwt(user!.id);
-      return Response.json({ token, userId: user!.id });
+      // Generate session via magic link
+      const session = await createSessionForUser(db, email);
+      return Response.json({ ...session, userId });
     }
 
     // === LOGIN OPTIONS ===
@@ -223,8 +229,12 @@ Deno.serve(async (req) => {
         .update({ sign_count: verification.authenticationInfo.newCounter })
         .eq("id", cred.id);
 
-      const token = await mintJwt(cred.user_id);
-      return Response.json({ token, userId: cred.user_id });
+      // Get the user's email for session generation
+      const username = cred.users.username;
+      const email = `${username}@pear.music`;
+
+      const session = await createSessionForUser(db, email);
+      return Response.json({ ...session, userId: cred.user_id });
     }
 
     return Response.json({ error: "Unknown action" }, { status: 400 });

@@ -1,15 +1,12 @@
 import type { ITunesAlbumResult, ITunesSearchResponse } from "../shared/types.js";
 import { supabase } from "./supabase.js";
-import { getStoredToken } from "./supabase.js";
 
 export async function searchItunes(
   query: string,
   storefront: string = "us"
 ): Promise<ITunesAlbumResult[]> {
-  const token = getStoredToken();
   const response = await supabase.functions.invoke("metadata", {
     body: { action: "search", query, storefront },
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   if (response.error) throw new Error(response.error.message);
@@ -23,10 +20,8 @@ export async function lookupAlbum(
   collectionId: string,
   storefront: string = "us"
 ): Promise<ITunesAlbumResult | null> {
-  const token = getStoredToken();
   const response = await supabase.functions.invoke("metadata", {
     body: { action: "lookup", collectionId, storefront },
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   if (response.error) throw new Error(response.error.message);

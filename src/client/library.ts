@@ -1,9 +1,8 @@
 import type { LibraryItem } from "../shared/types.js";
-import { getAuthenticatedClient } from "./supabase.js";
+import { supabase } from "./supabase.js";
 
 export async function getLibrary(): Promise<LibraryItem[]> {
-  const client = getAuthenticatedClient();
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from("library_items")
     .select("*")
     .order("added_at", { ascending: false });
@@ -13,8 +12,7 @@ export async function getLibrary(): Promise<LibraryItem[]> {
 }
 
 export async function searchLibrary(query: string): Promise<LibraryItem[]> {
-  const client = getAuthenticatedClient();
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from("library_items")
     .select("*")
     .or(`name.ilike.%${query}%,artist_name.ilike.%${query}%`)
@@ -34,14 +32,12 @@ export async function addToLibrary(item: {
   release_date: string | null;
   url: string | null;
 }): Promise<LibraryItem> {
-  const client = getAuthenticatedClient();
-  const token = localStorage.getItem("pear_music_jwt");
-  const payload = JSON.parse(atob(token!.split(".")[1]));
-  const user_id = payload.sub;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
 
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from("library_items")
-    .insert({ ...item, user_id })
+    .insert({ ...item, user_id: user.id })
     .select()
     .single();
 
@@ -53,9 +49,7 @@ export async function addToLibrary(item: {
 }
 
 export async function removeFromLibrary(id: string): Promise<void> {
-  const client = getAuthenticatedClient();
-  const { error } = await client.from("library_items").delete().eq("id", id);
-
+  const { error } = await supabase.from("library_items").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
 

@@ -3,20 +3,13 @@ import {
   startAuthentication,
 } from "@simplewebauthn/browser";
 import { supabase } from "./supabase.js";
-import { setSession } from "./supabase.js";
 
 export async function checkAppState(): Promise<"setup" | "login" | "authenticated"> {
-  const token = localStorage.getItem("pear_music_jwt");
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.exp * 1000 > Date.now()) return "authenticated";
-    } catch {
-      // Invalid token, fall through
-    }
-    localStorage.removeItem("pear_music_jwt");
-  }
+  // Check for existing Supabase session
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) return "authenticated";
 
+  // Check if any users exist
   const { count, error } = await supabase
     .from("users")
     .select("*", { count: "exact", head: true });
@@ -40,7 +33,14 @@ export async function register(username: string): Promise<void> {
   });
   if (verifyRes.error) throw new Error(verifyRes.error.message);
 
-  setSession(verifyRes.data.token);
+  // Exchange the magic link token for a real Supabase session
+  const { email, token_hash } = verifyRes.data;
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: token_hash,
+    type: "magiclink",
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function login(): Promise<void> {
@@ -58,5 +58,12 @@ export async function login(): Promise<void> {
   });
   if (verifyRes.error) throw new Error(verifyRes.error.message);
 
-  setSession(verifyRes.data.token);
+  // Exchange the magic link token for a real Supabase session
+  const { email, token_hash } = verifyRes.data;
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: token_hash,
+    type: "magiclink",
+  });
+  if (error) throw new Error(error.message);
 }
