@@ -40,8 +40,38 @@ body {
     var(--bg);
 }
 
-/* Grain overlay */
+/* Vinyl grooves — centered at 75% height */
 body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    repeating-radial-gradient(
+      circle at 50% 75%,
+      transparent,
+      transparent 18px,
+      rgba(255, 255, 255, 0.015) 18px,
+      rgba(255, 255, 255, 0.015) 19px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  body::before {
+    background:
+      repeating-radial-gradient(
+        circle at 50% 75%,
+        transparent,
+        transparent 18px,
+        rgba(0, 0, 0, 0.02) 18px,
+        rgba(0, 0, 0, 0.02) 19px
+      );
+  }
+}
+
+/* Grain overlay */
+body::after {
   content: '';
   position: fixed;
   inset: 0;
@@ -52,7 +82,7 @@ body::before {
 }
 
 @media (prefers-color-scheme: light) {
-  body::before {
+  body::after {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
   }
 }
