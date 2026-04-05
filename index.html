@@ -52,43 +52,30 @@
               src=""
             ></iframe>
           </div>
-          <div id="controls">
-            <button id="shuffle-btn">Shuffle</button>
-          </div>
         </div>
 
-        <!-- Search bar -->
-        <div id="search-bar">
-          <input
-            id="search-input"
-            type="text"
-            placeholder="Search albums..."
-            autocomplete="off"
-          />
-          <select id="search-mode">
-            <option value="library">Library</option>
-            <option value="itunes">iTunes</option>
-          </select>
+        <!-- Search bar + shuffle -->
+        <div id="toolbar">
+          <div id="search-bar">
+            <input
+              id="search-input"
+              type="text"
+              placeholder="Search library or paste URL..."
+              autocomplete="off"
+            />
+            <select id="search-mode">
+              <option value="library">Library</option>
+              <option value="itunes">iTunes</option>
+            </select>
+          </div>
+          <button id="shuffle-btn" title="Shuffle">&#9654;</button>
         </div>
+
+        <!-- Status message for URL adds -->
+        <p id="search-status" class="hidden"></p>
 
         <!-- Album grid -->
         <div id="album-grid"></div>
-
-        <!-- Add button (URL paste) -->
-        <button id="add-btn" title="Add album by URL">+</button>
-        <div id="add-overlay" class="hidden">
-          <div id="add-form">
-            <input
-              id="url-input"
-              type="url"
-              placeholder="Paste Apple Music URL..."
-              autocomplete="off"
-            />
-            <button id="url-submit">Add</button>
-            <button id="url-cancel">Cancel</button>
-          </div>
-          <p id="add-error" class="hidden"></p>
-        </div>
       </div>
     </div>
 

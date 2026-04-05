@@ -1,23 +1,20 @@
 import { checkAppState, register, login } from "./auth.js";
 import { getLibrary, searchLibrary, addToLibrary, removeFromLibrary, getRandomItem } from "./library.js";
-import { searchItunes, lookupAlbum, artworkUrl } from "./search.js";
+import { searchItunes, lookupAlbum } from "./search.js";
 import { parseAppleMusicUrl } from "./url-parser.js";
 import { loadEmbed } from "./player.js";
 import {
   showScreen,
   showPlayer,
-  hidePlayer,
   getSetupUsername,
   showAuthError,
   hideAuthError,
   getSearchQuery,
   getSearchMode,
+  clearSearchInput,
+  showSearchStatus,
   renderAlbumGrid,
   renderItunesResults,
-  showAddOverlay,
-  hideAddOverlay,
-  showAddError,
-  getUrlInputValue,
 } from "./ui.js";
 import type { LibraryItem, ITunesAlbumResult } from "../shared/types.js";
 import "./style.css";
@@ -81,7 +78,7 @@ async function handleRemove(item: LibraryItem): Promise<void> {
   await loadLibrary();
 }
 
-// --- Search ---
+// --- Search (handles both text search and URL paste) ---
 
 async function handleSearch(): Promise<void> {
   const query = getSearchQuery();
@@ -92,12 +89,50 @@ async function handleSearch(): Promise<void> {
     return;
   }
 
+  // Detect Apple Music URL pasted into search
+  const parsed = parseAppleMusicUrl(query);
+  if (parsed) {
+    await handleUrlAdd(query, parsed);
+    return;
+  }
+
   if (mode === "library") {
     const items = await searchLibrary(query);
     renderAlbumGrid(items, playAlbum, handleRemove);
   } else {
     const results = await searchItunes(query);
     renderItunesResults(results, handleAddFromItunes);
+  }
+}
+
+async function handleUrlAdd(
+  url: string,
+  parsed: { collectionId: string; storefront: string }
+): Promise<void> {
+  try {
+    showSearchStatus("Looking up album...");
+    const album = await lookupAlbum(parsed.collectionId, parsed.storefront);
+    if (!album) {
+      showSearchStatus("Album not found", true);
+      return;
+    }
+
+    await addToLibrary({
+      collection_id: album.collectionId,
+      name: album.collectionName,
+      artist_name: album.artistName,
+      artwork_url: album.artworkUrl100,
+      storefront: parsed.storefront,
+      genre: album.primaryGenreName || null,
+      release_date: album.releaseDate || null,
+      url,
+    });
+
+    clearSearchInput();
+    showSearchStatus(`Added "${album.collectionName}"`);
+    await loadLibrary();
+  } catch (err) {
+    showSearchStatus(err instanceof Error ? err.message : "Failed to add", true);
   }
 }
 
@@ -115,43 +150,6 @@ async function handleAddFromItunes(result: ITunesAlbumResult): Promise<void> {
     });
   } catch (err) {
     console.warn("Add failed:", err);
-  }
-}
-
-// --- Add by URL ---
-
-async function handleAddByUrl(): Promise<void> {
-  const url = getUrlInputValue();
-  if (!url) return;
-
-  const parsed = parseAppleMusicUrl(url);
-  if (!parsed) {
-    showAddError("Not a valid Apple Music album URL");
-    return;
-  }
-
-  try {
-    const album = await lookupAlbum(parsed.collectionId, parsed.storefront);
-    if (!album) {
-      showAddError("Album not found");
-      return;
-    }
-
-    await addToLibrary({
-      collection_id: album.collectionId,
-      name: album.collectionName,
-      artist_name: album.artistName,
-      artwork_url: album.artworkUrl100,
-      storefront: parsed.storefront,
-      genre: album.primaryGenreName || null,
-      release_date: album.releaseDate || null,
-      url,
-    });
-
-    hideAddOverlay();
-    if (getSearchMode() === "library") await loadLibrary();
-  } catch (err) {
-    showAddError(err instanceof Error ? err.message : "Failed to add");
   }
 }
 
@@ -173,15 +171,8 @@ async function init(): Promise<void> {
     await initMainScreen();
   }
 
-  // Main screen listeners (wired regardless of screen -- elements exist in DOM)
+  // Main screen listeners
   document.getElementById("shuffle-btn")!.addEventListener("click", handleShuffle);
-  document.getElementById("add-btn")!.addEventListener("click", showAddOverlay);
-  document.getElementById("url-cancel")!.addEventListener("click", hideAddOverlay);
-  document.getElementById("url-submit")!.addEventListener("click", handleAddByUrl);
-  document.getElementById("url-input")!.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleAddByUrl();
-    if (e.key === "Escape") hideAddOverlay();
-  });
 
   // Search with debounce
   document.getElementById("search-input")!.addEventListener("input", () => {

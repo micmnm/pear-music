@@ -56,6 +56,18 @@ export function getSearchMode(): SearchMode {
   return ($("search-mode") as HTMLSelectElement).value as SearchMode;
 }
 
+export function clearSearchInput(): void {
+  ($("search-input") as HTMLInputElement).value = "";
+}
+
+export function showSearchStatus(message: string, isError = false): void {
+  const el = $("search-status");
+  el.textContent = message;
+  el.className = isError ? "search-status error" : "search-status success";
+  el.classList.remove("hidden");
+  setTimeout(() => el.classList.add("hidden"), 3000);
+}
+
 // --- Album grid ---
 
 export function renderAlbumGrid(
@@ -67,7 +79,7 @@ export function renderAlbumGrid(
   grid.innerHTML = "";
 
   if (items.length === 0) {
-    grid.innerHTML = '<p class="empty-message">No albums found</p>';
+    grid.innerHTML = '<p class="empty-message">No albums yet. Switch to iTunes to search and add albums.</p>';
     return;
   }
 
@@ -123,28 +135,4 @@ export function renderItunesResults(
     });
     grid.appendChild(card);
   }
-}
-
-// --- Add overlay (URL paste) ---
-
-export function showAddOverlay(): void {
-  $("add-overlay").classList.remove("hidden");
-  ($("url-input") as HTMLInputElement).value = "";
-  $("add-error").classList.add("hidden");
-  ($("url-input") as HTMLInputElement).focus();
-}
-
-export function hideAddOverlay(): void {
-  $("add-overlay").classList.add("hidden");
-  $("add-error").classList.add("hidden");
-}
-
-export function showAddError(message: string): void {
-  const el = $("add-error");
-  el.textContent = message;
-  el.classList.remove("hidden");
-}
-
-export function getUrlInputValue(): string {
-  return ($("url-input") as HTMLInputElement).value.trim();
 }
