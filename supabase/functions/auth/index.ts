@@ -5,7 +5,9 @@ import {
   verifyAuthenticationResponse,
 } from "npm:@simplewebauthn/server@13.0.0";
 import { createClient } from "npm:@supabase/supabase-js@2.49.0";
-import { encode as base64Encode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+function base64Encode(data: Uint8Array): string {
+  return btoa(String.fromCharCode(...data));
+}
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
