@@ -9,7 +9,7 @@ when:
   event: [push, manual]
 
 variables:
-  - &node_image node:22-alpine
+  - &node_image node:24-alpine
   - &docker_image docker:24
   - &kubectl_image alpine/k8s:1.29.0
 
