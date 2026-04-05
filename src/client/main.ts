@@ -60,7 +60,7 @@ async function initMainScreen(): Promise<void> {
 }
 
 async function loadHome(): Promise<void> {
-  const items = await getRandomItems(8);
+  const items = await getRandomItems(10);
   renderHomeGrid(items, playAlbum);
 }
 
