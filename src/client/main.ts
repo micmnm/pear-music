@@ -1,61 +1,194 @@
-import { getLibrary, addItem, shuffle } from "./api.js";
+import { checkAppState, register, login } from "./auth.js";
+import { getLibrary, searchLibrary, addToLibrary, removeFromLibrary, getRandomItem } from "./library.js";
+import { searchItunes, lookupAlbum, artworkUrl } from "./search.js";
+import { parseAppleMusicUrl } from "./url-parser.js";
 import { loadEmbed } from "./player.js";
 import {
-  showPlayerView,
-  showEmptyState,
+  showScreen,
+  showPlayer,
+  hidePlayer,
+  getSetupUsername,
+  showAuthError,
+  hideAuthError,
+  getSearchQuery,
+  getSearchMode,
+  renderAlbumGrid,
+  renderItunesResults,
   showAddOverlay,
   hideAddOverlay,
   showAddError,
   getUrlInputValue,
 } from "./ui.js";
+import type { LibraryItem, ITunesAlbumResult } from "../shared/types.js";
 import "./style.css";
 
 const iframe = document.getElementById("apple-embed") as HTMLIFrameElement;
-let isPlaying = false;
+let debounceTimer: ReturnType<typeof setTimeout>;
 
-async function playShuffle(): Promise<void> {
+// --- Auth ---
+
+async function handleSetup(): Promise<void> {
+  const username = getSetupUsername();
+  if (!username) {
+    showAuthError("Please enter a username");
+    return;
+  }
   try {
-    const item = await shuffle();
-    showPlayerView(item);
-    loadEmbed(iframe, item);
-    isPlaying = true;
-  } catch {
-    // Library might be empty — ignore
+    hideAuthError();
+    await register(username);
+    await initMainScreen();
+  } catch (err) {
+    showAuthError(err instanceof Error ? err.message : "Registration failed");
   }
 }
 
-async function handleAdd(): Promise<void> {
+async function handleLogin(): Promise<void> {
+  try {
+    document.getElementById("auth-error-login")!.classList.add("hidden");
+    await login();
+    await initMainScreen();
+  } catch (err) {
+    const el = document.getElementById("auth-error-login")!;
+    el.textContent = err instanceof Error ? err.message : "Login failed";
+    el.classList.remove("hidden");
+  }
+}
+
+// --- Main screen ---
+
+async function initMainScreen(): Promise<void> {
+  showScreen("main");
+  await loadLibrary();
+}
+
+async function loadLibrary(): Promise<void> {
+  const items = await getLibrary();
+  renderAlbumGrid(items, playAlbum, handleRemove);
+}
+
+function playAlbum(item: LibraryItem): void {
+  showPlayer(item);
+  loadEmbed(iframe, item);
+}
+
+async function handleShuffle(): Promise<void> {
+  const item = await getRandomItem();
+  if (item) playAlbum(item);
+}
+
+async function handleRemove(item: LibraryItem): Promise<void> {
+  await removeFromLibrary(item.id);
+  await loadLibrary();
+}
+
+// --- Search ---
+
+async function handleSearch(): Promise<void> {
+  const query = getSearchQuery();
+  const mode = getSearchMode();
+
+  if (!query) {
+    if (mode === "library") await loadLibrary();
+    return;
+  }
+
+  if (mode === "library") {
+    const items = await searchLibrary(query);
+    renderAlbumGrid(items, playAlbum, handleRemove);
+  } else {
+    const results = await searchItunes(query);
+    renderItunesResults(results, handleAddFromItunes);
+  }
+}
+
+async function handleAddFromItunes(result: ITunesAlbumResult): Promise<void> {
+  try {
+    await addToLibrary({
+      collection_id: result.collectionId,
+      name: result.collectionName,
+      artist_name: result.artistName,
+      artwork_url: result.artworkUrl100,
+      storefront: result.country?.toLowerCase() || "us",
+      genre: result.primaryGenreName || null,
+      release_date: result.releaseDate || null,
+      url: null,
+    });
+  } catch (err) {
+    console.warn("Add failed:", err);
+  }
+}
+
+// --- Add by URL ---
+
+async function handleAddByUrl(): Promise<void> {
   const url = getUrlInputValue();
   if (!url) return;
 
+  const parsed = parseAppleMusicUrl(url);
+  if (!parsed) {
+    showAddError("Not a valid Apple Music album URL");
+    return;
+  }
+
   try {
-    await addItem(url);
+    const album = await lookupAlbum(parsed.collectionId, parsed.storefront);
+    if (!album) {
+      showAddError("Album not found");
+      return;
+    }
+
+    await addToLibrary({
+      collection_id: album.collectionId,
+      name: album.collectionName,
+      artist_name: album.artistName,
+      artwork_url: album.artworkUrl100,
+      storefront: parsed.storefront,
+      genre: album.primaryGenreName || null,
+      release_date: album.releaseDate || null,
+      url,
+    });
+
     hideAddOverlay();
-    // Only auto-shuffle if nothing is playing yet
-    if (!isPlaying) await playShuffle();
+    if (getSearchMode() === "library") await loadLibrary();
   } catch (err) {
     showAddError(err instanceof Error ? err.message : "Failed to add");
   }
 }
 
+// --- Init ---
+
 async function init(): Promise<void> {
-  // Wire up event listeners
-  document.getElementById("shuffle-btn")!.addEventListener("click", playShuffle);
+  const state = await checkAppState();
+
+  if (state === "setup") {
+    showScreen("setup");
+    document.getElementById("setup-btn")!.addEventListener("click", handleSetup);
+    document.getElementById("setup-username")!.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleSetup();
+    });
+  } else if (state === "login") {
+    showScreen("login");
+    document.getElementById("login-btn")!.addEventListener("click", handleLogin);
+  } else {
+    await initMainScreen();
+  }
+
+  // Main screen listeners (wired regardless of screen -- elements exist in DOM)
+  document.getElementById("shuffle-btn")!.addEventListener("click", handleShuffle);
   document.getElementById("add-btn")!.addEventListener("click", showAddOverlay);
   document.getElementById("url-cancel")!.addEventListener("click", hideAddOverlay);
-  document.getElementById("url-submit")!.addEventListener("click", handleAdd);
+  document.getElementById("url-submit")!.addEventListener("click", handleAddByUrl);
   document.getElementById("url-input")!.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleAdd();
+    if (e.key === "Enter") handleAddByUrl();
     if (e.key === "Escape") hideAddOverlay();
   });
 
-  // Load initial state
-  const library = await getLibrary();
-  if (library.items.length === 0) {
-    showEmptyState();
-  } else {
-    await playShuffle();
-  }
+  // Search with debounce
+  document.getElementById("search-input")!.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(handleSearch, 300);
+  });
+  document.getElementById("search-mode")!.addEventListener("change", handleSearch);
 }
 
 init();
