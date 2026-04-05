@@ -8,46 +8,90 @@
     <link rel="stylesheet" href="/src/client/style.css" />
   </head>
   <body>
-    <div id="app">
-      <div id="empty-state" class="hidden">
-        <p>No albums yet. Add one to get started!</p>
-      </div>
-
-      <div id="player-view" class="hidden">
-        <img id="artwork" src="" alt="Album artwork" />
-        <div id="track-info">
-          <h1 id="album-name"></h1>
-          <h2 id="artist-name"></h2>
-        </div>
-        <div id="embed-container">
-          <iframe
-            id="apple-embed"
-            allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
-            frameborder="0"
-            sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
-            src=""
-          ></iframe>
-        </div>
-        <div id="controls">
-          <button id="shuffle-btn">Shuffle</button>
-        </div>
-      </div>
-
-      <button id="add-btn" title="Add album or playlist">+</button>
-      <div id="add-overlay" class="hidden">
-        <div id="add-form">
-          <input
-            id="url-input"
-            type="url"
-            placeholder="Paste Apple Music URL..."
-            autocomplete="off"
-          />
-          <button id="url-submit">Add</button>
-          <button id="url-cancel">Cancel</button>
-        </div>
-        <p id="add-error" class="hidden"></p>
+    <!-- Setup Screen (first visit) -->
+    <div id="setup-screen" class="screen hidden">
+      <div class="auth-container">
+        <h1>Welcome to Pear Music</h1>
+        <p>Set up your account to get started.</p>
+        <input
+          id="setup-username"
+          type="text"
+          placeholder="Choose a username"
+          autocomplete="username"
+        />
+        <button id="setup-btn" class="btn-primary">Register with Passkey</button>
+        <p id="auth-error" class="error-text hidden"></p>
       </div>
     </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen hidden">
+      <div class="auth-container">
+        <h1>Pear Music</h1>
+        <button id="login-btn" class="btn-primary">Sign in with Passkey</button>
+        <p id="auth-error-login" class="error-text hidden"></p>
+      </div>
+    </div>
+
+    <!-- Main Screen (authenticated) -->
+    <div id="main-screen" class="screen hidden">
+      <div id="app">
+        <!-- Player section -->
+        <div id="player-section" class="hidden">
+          <img id="artwork" src="" alt="Album artwork" />
+          <div id="track-info">
+            <h1 id="album-name"></h1>
+            <h2 id="artist-name"></h2>
+          </div>
+          <div id="embed-container">
+            <iframe
+              id="apple-embed"
+              allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+              frameborder="0"
+              sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
+              src=""
+            ></iframe>
+          </div>
+          <div id="controls">
+            <button id="shuffle-btn">Shuffle</button>
+          </div>
+        </div>
+
+        <!-- Search bar -->
+        <div id="search-bar">
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search albums..."
+            autocomplete="off"
+          />
+          <select id="search-mode">
+            <option value="library">Library</option>
+            <option value="itunes">iTunes</option>
+          </select>
+        </div>
+
+        <!-- Album grid -->
+        <div id="album-grid"></div>
+
+        <!-- Add button (URL paste) -->
+        <button id="add-btn" title="Add album by URL">+</button>
+        <div id="add-overlay" class="hidden">
+          <div id="add-form">
+            <input
+              id="url-input"
+              type="url"
+              placeholder="Paste Apple Music URL..."
+              autocomplete="off"
+            />
+            <button id="url-submit">Add</button>
+            <button id="url-cancel">Cancel</button>
+          </div>
+          <p id="add-error" class="hidden"></p>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="/src/client/main.ts"></script>
   </body>
 </html>

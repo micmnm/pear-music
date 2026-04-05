@@ -9,24 +9,85 @@ body {
   background: #111;
   color: #fff;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-#app {
-  width: 100%;
-  max-width: 420px;
-  padding: 24px;
-  text-align: center;
-  position: relative;
 }
 
 .hidden {
   display: none !important;
 }
 
-/* Artwork */
+/* === Screens === */
+.screen {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* === Auth === */
+.auth-container {
+  text-align: center;
+  padding: 24px;
+  max-width: 360px;
+}
+
+.auth-container h1 {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.auth-container p {
+  color: #aaa;
+  margin-bottom: 20px;
+}
+
+.auth-container input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.btn-primary {
+  width: 100%;
+  background: #fa2d48;
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 14px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #e0263f;
+}
+
+.error-text {
+  color: #fa2d48;
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
+/* === Main App === */
+#app {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* === Player === */
+#player-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
 #artwork {
   width: 100%;
   max-width: 360px;
@@ -37,7 +98,6 @@ body {
   background: #222;
 }
 
-/* Track info */
 #track-info {
   margin-bottom: 16px;
 }
@@ -54,19 +114,18 @@ body {
   color: #aaa;
 }
 
-/* Embed */
 #embed-container {
   margin-bottom: 20px;
 }
 
 #apple-embed {
   width: 100%;
+  max-width: 420px;
   height: 175px;
   border-radius: 12px;
   background: #222;
 }
 
-/* Controls */
 #controls {
   display: flex;
   justify-content: center;
@@ -89,7 +148,120 @@ body {
   background: #e0263f;
 }
 
-/* Add button */
+/* === Search === */
+#search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+#search-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+#search-input::placeholder {
+  color: #666;
+}
+
+#search-mode {
+  padding: 10px 14px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+/* === Album Grid === */
+#album-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.album-card {
+  position: relative;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1a1a;
+  transition: transform 0.15s;
+}
+
+.album-card:hover {
+  transform: scale(1.03);
+}
+
+.album-card-art {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.album-card-info {
+  padding: 8px;
+}
+
+.album-card-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-card-artist {
+  display: block;
+  font-size: 0.75rem;
+  color: #aaa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-card-remove,
+.album-card-add {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.album-card:hover .album-card-remove,
+.album-card:hover .album-card-add {
+  opacity: 1;
+}
+
+.album-card-remove {
+  background: rgba(250, 45, 72, 0.9);
+  color: #fff;
+}
+
+.album-card-add {
+  background: rgba(50, 200, 80, 0.9);
+  color: #fff;
+}
+
+/* === Add overlay === */
 #add-btn {
   position: fixed;
   bottom: 24px;
@@ -103,13 +275,13 @@ body {
   font-size: 1.5rem;
   cursor: pointer;
   transition: background 0.2s;
+  z-index: 5;
 }
 
 #add-btn:hover {
   background: #555;
 }
 
-/* Add overlay */
 #add-overlay {
   position: fixed;
   bottom: 80px;
@@ -162,13 +334,9 @@ body {
   text-align: right;
 }
 
-/* Empty state */
-#empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 300px;
-  color: #888;
-  font-size: 1.1rem;
+.empty-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #666;
+  padding: 40px;
 }

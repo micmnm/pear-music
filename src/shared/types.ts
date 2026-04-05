@@ -1,12 +1,34 @@
 export interface LibraryItem {
   id: string;
-  type: "album" | "playlist";
+  user_id: string;
+  collection_id: number;
   name: string;
-  artistName: string | null;
-  artworkUrl: string;
-  url: string;
+  artist_name: string;
+  artwork_url: string;
+  storefront: string;
+  genre: string | null;
+  release_date: string | null;
+  url: string | null;
+  added_at: string;
 }
 
-export interface Library {
-  items: LibraryItem[];
+export interface ParsedAppleUrl {
+  type: "album";
+  collectionId: string;
+  storefront: string;
+}
+
+export interface ITunesAlbumResult {
+  collectionId: number;
+  collectionName: string;
+  artistName: string;
+  artworkUrl100: string;
+  primaryGenreName: string;
+  releaseDate: string;
+  country: string;
+}
+
+export interface ITunesSearchResponse {
+  resultCount: number;
+  results: ITunesAlbumResult[];
 }
