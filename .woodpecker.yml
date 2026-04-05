@@ -42,9 +42,13 @@ steps:
         from_secret: docker_registry_user
       DOCKER_REGISTRY_PASSWORD:
         from_secret: docker_registry_password
+      VITE_SUPABASE_URL:
+        from_secret: supabase_url
+      VITE_SUPABASE_ANON_KEY:
+        from_secret: supabase_anon_key
     commands:
       - docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" "$DOCKER_REGISTRY"
-      - docker build -t "$DOCKER_REGISTRY/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}" -t "$DOCKER_REGISTRY/pear-music:latest" -f Dockerfile .
+      - docker build --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" -t "$DOCKER_REGISTRY/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}" -t "$DOCKER_REGISTRY/pear-music:latest" -f Dockerfile .
       - docker push "$DOCKER_REGISTRY/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}"
       - docker push "$DOCKER_REGISTRY/pear-music:latest"
     depends_on: [build]
