@@ -1,0 +1,8 @@
+[project]
+id = "pear-music"
+
+[functions.auth]
+verify_jwt = false
+
+[functions.metadata]
+verify_jwt = false
