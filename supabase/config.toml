@@ -1,5 +1,4 @@
-[project]
-id = "pear-music"
+project_id = "pear-music"
 
 [functions.auth]
 verify_jwt = false
