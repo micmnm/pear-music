@@ -1,5 +1,5 @@
 import { checkAppState, register, login } from "./auth.js";
-import { getLibrary, searchLibrary, addToLibrary, removeFromLibrary, getRandomItem } from "./library.js";
+import { getLibrary, searchLibrary, addToLibrary, removeFromLibrary, getRandomItem, getRandomItems } from "./library.js";
 import { searchItunes, lookupAlbum } from "./search.js";
 import { parseAppleMusicUrl } from "./url-parser.js";
 import { loadEmbed } from "./player.js";
@@ -13,6 +13,7 @@ import {
   getSearchMode,
   clearSearchInput,
   showSearchStatus,
+  renderHomeGrid,
   renderAlbumGrid,
   renderItunesResults,
 } from "./ui.js";
@@ -55,12 +56,12 @@ async function handleLogin(): Promise<void> {
 
 async function initMainScreen(): Promise<void> {
   showScreen("main");
-  await loadLibrary();
+  await loadHome();
 }
 
-async function loadLibrary(): Promise<void> {
-  const items = await getLibrary();
-  renderAlbumGrid(items, playAlbum, handleRemove);
+async function loadHome(): Promise<void> {
+  const items = await getRandomItems(8);
+  renderHomeGrid(items, playAlbum);
 }
 
 function playAlbum(item: LibraryItem): void {
@@ -69,6 +70,7 @@ function playAlbum(item: LibraryItem): void {
 }
 
 async function handleShuffle(): Promise<void> {
+  await loadHome();
   const item = await getRandomItem();
   if (item) playAlbum(item);
 }
@@ -85,7 +87,7 @@ async function handleSearch(): Promise<void> {
   const mode = getSearchMode();
 
   if (!query) {
-    if (mode === "library") await loadLibrary();
+    if (mode === "library") await loadHome();
     return;
   }
 
@@ -130,7 +132,7 @@ async function handleUrlAdd(
 
     clearSearchInput();
     showSearchStatus(`Added "${album.collectionName}"`);
-    await loadLibrary();
+    await loadHome();
   } catch (err) {
     showSearchStatus(err instanceof Error ? err.message : "Failed to add", true);
   }

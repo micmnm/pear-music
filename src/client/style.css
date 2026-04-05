@@ -212,6 +212,27 @@ body {
   transition: transform 0.15s;
 }
 
+.album-card-featured {
+  grid-column: 1 / -1;
+  max-width: 320px;
+  margin: 0 auto 8px;
+}
+
+.featured-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #fa2d48;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 12px;
+  z-index: 2;
+}
+
 .album-card:hover {
   transform: scale(1.03);
 }

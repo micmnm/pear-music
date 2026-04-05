@@ -68,7 +68,53 @@ export function showSearchStatus(message: string, isError = false): void {
   setTimeout(() => el.classList.add("hidden"), 3000);
 }
 
-// --- Album grid ---
+// --- Home grid (featured + random) ---
+
+export function renderHomeGrid(
+  items: LibraryItem[],
+  onPlay: (item: LibraryItem) => void
+): void {
+  const grid = $("album-grid");
+  grid.innerHTML = "";
+
+  if (items.length === 0) {
+    grid.innerHTML = '<p class="empty-message">No albums yet. Switch to iTunes to search and add albums.</p>';
+    return;
+  }
+
+  const [featured, ...rest] = items;
+
+  // Featured card (shuffle pick, larger)
+  const featuredCard = document.createElement("div");
+  featuredCard.className = "album-card album-card-featured";
+  featuredCard.innerHTML = `
+    <span class="featured-label">Shuffle Pick</span>
+    <img src="${artworkUrl(featured.artwork_url, 600)}" alt="${featured.name}" class="album-card-art" />
+    <div class="album-card-info">
+      <span class="album-card-name">${featured.name}</span>
+      <span class="album-card-artist">${featured.artist_name}</span>
+    </div>
+  `;
+  featuredCard.addEventListener("click", () => onPlay(featured));
+  grid.appendChild(featuredCard);
+
+  // Remaining cards
+  for (const item of rest) {
+    const card = document.createElement("div");
+    card.className = "album-card";
+    card.innerHTML = `
+      <img src="${artworkUrl(item.artwork_url, 300)}" alt="${item.name}" class="album-card-art" />
+      <div class="album-card-info">
+        <span class="album-card-name">${item.name}</span>
+        <span class="album-card-artist">${item.artist_name}</span>
+      </div>
+    `;
+    card.addEventListener("click", () => onPlay(item));
+    grid.appendChild(card);
+  }
+}
+
+// --- Album grid (search results) ---
 
 export function renderAlbumGrid(
   items: LibraryItem[],

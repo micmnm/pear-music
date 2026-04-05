@@ -58,3 +58,14 @@ export async function getRandomItem(): Promise<LibraryItem | null> {
   if (items.length === 0) return null;
   return items[Math.floor(Math.random() * items.length)];
 }
+
+export async function getRandomItems(count: number): Promise<LibraryItem[]> {
+  const items = await getLibrary();
+  // Fisher-Yates shuffle, take first `count`
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, count);
+}
