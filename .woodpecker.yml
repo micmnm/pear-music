@@ -25,7 +25,7 @@ steps:
       VITE_SUPABASE_ANON_KEY:
         from_secret: supabase_anon_key
     commands:
-      - npm ci
+      - npm install --no-audit --no-fund
       - npm run build
 
   # ---------------------------------------------------------------------------
