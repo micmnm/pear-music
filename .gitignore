@@ -3,3 +3,4 @@ dist/
 .env
 k8s/
 supabase/.env
+supabase/.temp/
