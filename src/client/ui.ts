@@ -82,21 +82,19 @@ export function renderHomeGrid(
     return;
   }
 
-  const [featured, ...rest] = items;
+  const [blind, ...rest] = items;
 
-  // Featured card (shuffle pick, larger)
-  const featuredCard = document.createElement("div");
-  featuredCard.className = "album-card album-card-featured";
-  featuredCard.innerHTML = `
-    <span class="featured-label">Shuffle Pick</span>
-    <img src="${artworkUrl(featured.artwork_url, 600)}" alt="${featured.name}" class="album-card-art" />
-    <div class="album-card-info">
-      <span class="album-card-name">${featured.name}</span>
-      <span class="album-card-artist">${featured.artist_name}</span>
+  // Blind shuffle card — same size as others, no album info shown
+  const blindCard = document.createElement("div");
+  blindCard.className = "album-card album-card-blind";
+  blindCard.innerHTML = `
+    <div class="blind-art">
+      <span class="blind-icon">&#9654;</span>
+      <span class="blind-text">Shuffle</span>
     </div>
   `;
-  featuredCard.addEventListener("click", () => onPlay(featured));
-  grid.appendChild(featuredCard);
+  blindCard.addEventListener("click", () => onPlay(blind));
+  grid.appendChild(blindCard);
 
   // Remaining cards
   for (const item of rest) {
