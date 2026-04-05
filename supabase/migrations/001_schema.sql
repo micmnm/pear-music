@@ -2,6 +2,9 @@
 -- Pear Music Schema
 -- ============================================
 
+-- Enable trigram extension for fuzzy text search (must be before indexes)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- Users table (single user, passkey auth)
 CREATE TABLE users (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -52,9 +55,6 @@ CREATE INDEX idx_library_items_name ON library_items USING gin(name gin_trgm_ops
 CREATE INDEX idx_library_items_artist ON library_items USING gin(artist_name gin_trgm_ops);
 CREATE INDEX idx_user_credentials_user_id ON user_credentials(user_id);
 CREATE INDEX idx_webauthn_challenges_created ON webauthn_challenges(created_at);
-
--- Enable trigram extension for fuzzy text search
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- ============================================
 -- Row Level Security
