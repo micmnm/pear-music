@@ -40,15 +40,22 @@ async function createSessionForUser(
   };
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
+};
+
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
-      },
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -61,7 +68,7 @@ Deno.serve(async (req) => {
         .from("users")
         .select("*", { count: "exact", head: true });
       if (count && count > 0) {
-        return Response.json({ error: "Registration closed" }, { status: 403 });
+        return jsonResponse({ error: "Registration closed" }, 403);
       }
 
       const options = await generateRegistrationOptions({
@@ -86,7 +93,7 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
-      return Response.json({ options, challengeId: challenge!.id });
+      return jsonResponse({ options, challengeId: challenge!.id });
     }
 
     // === REGISTER ===
@@ -100,7 +107,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (!challenge) {
-        return Response.json({ error: "Invalid challenge" }, { status: 400 });
+        return jsonResponse({ error: "Invalid challenge" }, 400);
       }
 
       await db.from("webauthn_challenges").delete().eq("id", challengeId);
@@ -113,7 +120,7 @@ Deno.serve(async (req) => {
       });
 
       if (!verification.verified || !verification.registrationInfo) {
-        return Response.json({ error: "Verification failed" }, { status: 400 });
+        return jsonResponse({ error: "Verification failed" }, 400);
       }
 
       const { credential, credentialDeviceType } = verification.registrationInfo;
@@ -129,9 +136,9 @@ Deno.serve(async (req) => {
         });
 
       if (authError) {
-        return Response.json(
+        return jsonResponse(
           { error: authError.message },
-          { status: 500 }
+          500
         );
       }
 
@@ -155,7 +162,7 @@ Deno.serve(async (req) => {
 
       // Generate session via magic link
       const session = await createSessionForUser(db, email);
-      return Response.json({ ...session, userId });
+      return jsonResponse({ ...session, userId });
     }
 
     // === LOGIN OPTIONS ===
@@ -179,7 +186,7 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
-      return Response.json({ options, challengeId: challenge!.id });
+      return jsonResponse({ options, challengeId: challenge!.id });
     }
 
     // === LOGIN ===
@@ -193,7 +200,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (!challenge) {
-        return Response.json({ error: "Invalid challenge" }, { status: 400 });
+        return jsonResponse({ error: "Invalid challenge" }, 400);
       }
 
       await db.from("webauthn_challenges").delete().eq("id", challengeId);
@@ -205,7 +212,7 @@ Deno.serve(async (req) => {
         .eq("credential_id", assertionCredId);
 
       if (!creds || creds.length === 0) {
-        return Response.json({ error: "Unknown credential" }, { status: 400 });
+        return jsonResponse({ error: "Unknown credential" }, 400);
       }
 
       const cred = creds[0];
@@ -223,7 +230,7 @@ Deno.serve(async (req) => {
       });
 
       if (!verification.verified) {
-        return Response.json({ error: "Verification failed" }, { status: 400 });
+        return jsonResponse({ error: "Verification failed" }, 400);
       }
 
       await db
@@ -236,14 +243,14 @@ Deno.serve(async (req) => {
       const email = `${username}@pear.music`;
 
       const session = await createSessionForUser(db, email);
-      return Response.json({ ...session, userId: cred.user_id });
+      return jsonResponse({ ...session, userId: cred.user_id });
     }
 
-    return Response.json({ error: "Unknown action" }, { status: 400 });
+    return jsonResponse({ error: "Unknown action" }, 400);
   } catch (err) {
-    return Response.json(
+    return jsonResponse(
       { error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 }
+      500
     );
   }
 });

@@ -1,12 +1,19 @@
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
+};
+
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
-      },
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -15,7 +22,7 @@ Deno.serve(async (req) => {
     if (action === "search") {
       const { query, storefront = "us" } = params;
       if (!query) {
-        return Response.json({ error: "query required" }, { status: 400 });
+        return jsonResponse({ error: "query required" }, 400);
       }
 
       const url = `https://itunes.apple.com/search?${new URLSearchParams({
@@ -27,13 +34,13 @@ Deno.serve(async (req) => {
 
       const res = await fetch(url);
       const data = await res.json();
-      return Response.json(data);
+      return jsonResponse(data);
     }
 
     if (action === "lookup") {
       const { collectionId, storefront = "us" } = params;
       if (!collectionId) {
-        return Response.json({ error: "collectionId required" }, { status: 400 });
+        return jsonResponse({ error: "collectionId required" }, 400);
       }
 
       const url = `https://itunes.apple.com/lookup?${new URLSearchParams({
@@ -43,14 +50,14 @@ Deno.serve(async (req) => {
 
       const res = await fetch(url);
       const data = await res.json();
-      return Response.json(data);
+      return jsonResponse(data);
     }
 
-    return Response.json({ error: "Unknown action" }, { status: 400 });
+    return jsonResponse({ error: "Unknown action" }, 400);
   } catch (err) {
-    return Response.json(
+    return jsonResponse(
       { error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 }
+      500
     );
   }
 });
