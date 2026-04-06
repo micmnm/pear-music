@@ -3,6 +3,7 @@ import { getLibrary, searchLibrary, addToLibrary, removeFromLibrary, getRandomIt
 import { searchItunes, lookupAlbum } from "./search.js";
 import { parseAppleMusicUrl } from "./url-parser.js";
 import { loadEmbed } from "./player.js";
+import { getStorefront } from "./settings.js";
 import {
   showScreen,
   showPlayer,
@@ -112,7 +113,8 @@ async function handleUrlAdd(
 ): Promise<void> {
   try {
     showSearchStatus("Looking up album...");
-    const album = await lookupAlbum(parsed.collectionId, parsed.storefront);
+    const storefront = await getStorefront();
+    const album = await lookupAlbum(parsed.collectionId, storefront);
     if (!album) {
       showSearchStatus("Album not found", true);
       return;
@@ -123,7 +125,7 @@ async function handleUrlAdd(
       name: album.collectionName,
       artist_name: album.artistName,
       artwork_url: album.artworkUrl100,
-      storefront: parsed.storefront,
+      storefront,
       genre: album.primaryGenreName || null,
       release_date: album.releaseDate || null,
       url,
@@ -139,12 +141,13 @@ async function handleUrlAdd(
 
 async function handleAddFromItunes(result: ITunesAlbumResult): Promise<void> {
   try {
+    const storefront = await getStorefront();
     await addToLibrary({
       collection_id: result.collectionId,
       name: result.collectionName,
       artist_name: result.artistName,
       artwork_url: result.artworkUrl100,
-      storefront: result.country?.toLowerCase() || "us",
+      storefront,
       genre: result.primaryGenreName || null,
       release_date: result.releaseDate || null,
       url: null,

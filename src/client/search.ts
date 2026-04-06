@@ -1,12 +1,14 @@
 import type { ITunesAlbumResult, ITunesSearchResponse } from "../shared/types.js";
 import { supabase } from "./supabase.js";
+import { getStorefront } from "./settings.js";
 
 export async function searchItunes(
   query: string,
-  storefront: string = "us"
+  storefront?: string
 ): Promise<ITunesAlbumResult[]> {
+  const sf = storefront || await getStorefront();
   const response = await supabase.functions.invoke("metadata", {
-    body: { action: "search", query, storefront },
+    body: { action: "search", query, storefront: sf },
   });
 
   if (response.error) throw new Error(response.error.message);
@@ -18,10 +20,11 @@ export async function searchItunes(
 
 export async function lookupAlbum(
   collectionId: string,
-  storefront: string = "us"
+  storefront?: string
 ): Promise<ITunesAlbumResult | null> {
+  const sf = storefront || await getStorefront();
   const response = await supabase.functions.invoke("metadata", {
-    body: { action: "lookup", collectionId, storefront },
+    body: { action: "lookup", collectionId, storefront: sf },
   });
 
   if (response.error) throw new Error(response.error.message);
