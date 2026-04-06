@@ -95,8 +95,8 @@ export function renderHomeGrid(
   shuffleCard.addEventListener("click", onShuffle);
   grid.appendChild(shuffleCard);
 
-  // Album cards
-  for (const item of items) {
+  // Album cards (skip first — shuffle card takes its slot)
+  for (const item of items.slice(1)) {
     const card = document.createElement("div");
     card.className = "album-card";
     card.innerHTML = `
