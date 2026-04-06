@@ -173,9 +173,10 @@ Deno.serve(async (req) => {
       });
 
       // Store WebAuthn credential
+      // In v13, credential.id is already a base64url string
       await db.from("user_credentials").insert({
         user_id: userId,
-        credential_id: base64Encode(credential.id),
+        credential_id: credential.id,
         public_key: base64Encode(credential.publicKey),
         sign_count: credential.counter,
         device_info: credentialDeviceType,
@@ -196,7 +197,7 @@ Deno.serve(async (req) => {
         rpID: RP_ID,
         userVerification: "preferred",
         allowCredentials: (creds || []).map((c: { credential_id: string }) => ({
-          id: c.credential_id.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+          id: c.credential_id,
           type: "public-key",
         })),
       });
@@ -226,13 +227,10 @@ Deno.serve(async (req) => {
 
       await db.from("webauthn_challenges").delete().eq("id", challengeId);
 
-      // assertion.id is base64url, DB stores base64 — convert for lookup
-      const assertionCredId = assertion.id.replace(/-/g, "+").replace(/_/g, "/");
-      const padded = assertionCredId + "=".repeat((4 - assertionCredId.length % 4) % 4);
       const { data: creds } = await db
         .from("user_credentials")
         .select("*, users(*)")
-        .eq("credential_id", padded);
+        .eq("credential_id", assertion.id);
 
       if (!creds || creds.length === 0) {
         return jsonResponse({ error: "Unknown credential" }, 400);
@@ -246,7 +244,7 @@ Deno.serve(async (req) => {
         expectedOrigin: RP_ORIGIN,
         expectedRPID: RP_ID,
         credential: {
-          id: Uint8Array.from(atob(cred.credential_id), (ch) => ch.charCodeAt(0)),
+          id: cred.credential_id,
           publicKey: Uint8Array.from(atob(cred.public_key), (ch) => ch.charCodeAt(0)),
           counter: cred.sign_count,
         },
