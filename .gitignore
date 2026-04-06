@@ -4,3 +4,5 @@ dist/
 k8s/
 supabase/.env
 supabase/.temp/
+.claude/
+docs/superpowers/
