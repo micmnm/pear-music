@@ -292,10 +292,18 @@ body::after {
   transition: transform 0.15s;
 }
 
-/* Blind shuffle card */
+/* Shuffle card */
 .album-card-blind {
-  background: var(--bg-card);
-  border: 1px dashed var(--border);
+  background: var(--accent);
+  border: none;
+}
+
+.album-card-blind:hover {
+  transform: scale(1.05);
+}
+
+.album-card-blind:active {
+  transform: scale(0.97);
 }
 
 .blind-art {
@@ -306,20 +314,18 @@ body::after {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: var(--text-muted);
+  color: #fff;
 }
 
 .blind-icon {
-  font-size: 1.6rem;
-  opacity: 0.6;
+  font-size: 2rem;
 }
 
 .blind-text {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.5;
+  letter-spacing: 0.1em;
 }
 
 .album-card:hover {

@@ -72,7 +72,8 @@ export function showSearchStatus(message: string, isError = false): void {
 
 export function renderHomeGrid(
   items: LibraryItem[],
-  onPlay: (item: LibraryItem) => void
+  onPlay: (item: LibraryItem) => void,
+  onShuffle: () => void
 ): void {
   const grid = $("album-grid");
   grid.innerHTML = "";
@@ -82,22 +83,20 @@ export function renderHomeGrid(
     return;
   }
 
-  const [blind, ...rest] = items;
-
-  // Blind shuffle card — same size as others, no album info shown
-  const blindCard = document.createElement("div");
-  blindCard.className = "album-card album-card-blind";
-  blindCard.innerHTML = `
+  // Shuffle card — picks a new random album on every click
+  const shuffleCard = document.createElement("div");
+  shuffleCard.className = "album-card album-card-blind";
+  shuffleCard.innerHTML = `
     <div class="blind-art">
       <span class="blind-icon">&#9654;</span>
       <span class="blind-text">Shuffle</span>
     </div>
   `;
-  blindCard.addEventListener("click", () => onPlay(blind));
-  grid.appendChild(blindCard);
+  shuffleCard.addEventListener("click", onShuffle);
+  grid.appendChild(shuffleCard);
 
-  // Remaining cards
-  for (const item of rest) {
+  // Album cards
+  for (const item of items) {
     const card = document.createElement("div");
     card.className = "album-card";
     card.innerHTML = `

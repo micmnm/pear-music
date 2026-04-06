@@ -61,7 +61,7 @@ async function initMainScreen(): Promise<void> {
 
 async function loadHome(): Promise<void> {
   const items = await getRandomItems(10);
-  renderHomeGrid(items, playAlbum);
+  renderHomeGrid(items, playAlbum, handleShuffle);
 }
 
 function playAlbum(item: LibraryItem): void {
@@ -70,7 +70,6 @@ function playAlbum(item: LibraryItem): void {
 }
 
 async function handleShuffle(): Promise<void> {
-  await loadHome();
   const item = await getRandomItem();
   if (item) playAlbum(item);
 }
