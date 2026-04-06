@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
         rpID: RP_ID,
         userVerification: "preferred",
         allowCredentials: (creds || []).map((c: { credential_id: string }) => ({
-          id: Uint8Array.from(atob(c.credential_id), (ch) => ch.charCodeAt(0)),
+          id: c.credential_id.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
           type: "public-key",
         })),
       });
@@ -226,11 +226,13 @@ Deno.serve(async (req) => {
 
       await db.from("webauthn_challenges").delete().eq("id", challengeId);
 
-      const assertionCredId = assertion.id;
+      // assertion.id is base64url, DB stores base64 — convert for lookup
+      const assertionCredId = assertion.id.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = assertionCredId + "=".repeat((4 - assertionCredId.length % 4) % 4);
       const { data: creds } = await db
         .from("user_credentials")
         .select("*, users(*)")
-        .eq("credential_id", assertionCredId);
+        .eq("credential_id", padded);
 
       if (!creds || creds.length === 0) {
         return jsonResponse({ error: "Unknown credential" }, 400);
