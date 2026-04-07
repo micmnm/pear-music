@@ -5,6 +5,7 @@ import {
   verifyAuthenticationResponse,
 } from "npm:@simplewebauthn/server@13.0.0";
 import { createClient } from "npm:@supabase/supabase-js@2.49.0";
+import { decideSignupStatus } from "../_shared/slot-accounting.ts";
 function base64Encode(data: Uint8Array): string {
   return btoa(String.fromCharCode(...data));
 }
@@ -88,11 +89,25 @@ Deno.serve(async (req) => {
       // No single-user gate — registration is open. Slot accounting happens in the
       // 'register' action below, after the WebAuthn ceremony succeeds.
 
+      if (!params.email || typeof params.email !== "string") {
+        return jsonResponse({ error: "Email required" }, 400);
+      }
+
+      // Reject duplicate emails up front so we fail fast instead of after WebAuthn.
+      const { data: existing } = await db
+        .from("users")
+        .select("id")
+        .eq("email", params.email)
+        .maybeSingle();
+      if (existing) {
+        return jsonResponse({ error: "Email already registered" }, 409);
+      }
+
       const options = await generateRegistrationOptions({
         rpName: RP_NAME,
         rpID: RP_ID,
-        userName: params.username,
-        userDisplayName: params.username,
+        userName: params.email,
+        userDisplayName: params.email,
         attestationType: "none",
         authenticatorSelection: {
           residentKey: "preferred",
@@ -105,7 +120,7 @@ Deno.serve(async (req) => {
         .insert({
           challenge: options.challenge,
           type: "registration",
-          metadata: { username: params.username },
+          metadata: { email: params.email },
         })
         .select()
         .single();
@@ -141,35 +156,55 @@ Deno.serve(async (req) => {
       }
 
       const { credential, credentialDeviceType } = verification.registrationInfo;
-      const username = challenge.metadata.username;
-      const email = `${username}@pear.music`;
+      const email = challenge.metadata.email;
 
-      // Create Supabase Auth user
+      // Slot accounting: count current users + read cap, then decide status.
+      const { count: totalUsers } = await db
+        .from("users")
+        .select("*", { count: "exact", head: true });
+
+      const { count: activeUsers } = await db
+        .from("users")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "active");
+
+      const { data: settings } = await db
+        .from("app_settings")
+        .select("max_active_users")
+        .eq("id", 1)
+        .single();
+
+      const decision = decideSignupStatus({
+        totalUsers: totalUsers ?? 0,
+        activeUsers: activeUsers ?? 0,
+        maxActiveUsers: settings?.max_active_users ?? 15,
+      });
+
+      // Create Supabase Auth user with the real email (not synthetic)
       const { data: authUser, error: authError } =
         await db.auth.admin.createUser({
           email,
           email_confirm: true,
-          user_metadata: { username },
+          user_metadata: { display_name: email },
         });
 
       if (authError) {
-        return jsonResponse(
-          { error: authError.message },
-          500
-        );
+        return jsonResponse({ error: authError.message }, 500);
       }
 
       const userId = authUser.user.id;
 
-      // Store user in our users table
+      // Insert into custom users table with the slot decision
       await db.from("users").insert({
         id: userId,
-        username,
-        display_name: username,
+        email,
+        display_name: email,
+        status: decision.status,
+        is_admin: decision.isAdmin,
+        approved_at: decision.status === "active" ? new Date().toISOString() : null,
       });
 
       // Store WebAuthn credential
-      // In v13, credential.id is already a base64url string
       await db.from("user_credentials").insert({
         user_id: userId,
         credential_id: credential.id,
@@ -180,7 +215,12 @@ Deno.serve(async (req) => {
 
       // Generate session via magic link
       const session = await createSessionForUser(email);
-      return jsonResponse({ ...session, userId });
+      return jsonResponse({
+        ...session,
+        userId,
+        status: decision.status,
+        isAdmin: decision.isAdmin,
+      });
     }
 
     // === LOGIN OPTIONS ===
