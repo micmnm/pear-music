@@ -85,12 +85,8 @@ Deno.serve(async (req) => {
 
     // === REGISTER OPTIONS ===
     if (action === "register-options") {
-      const { count } = await db
-        .from("users")
-        .select("*", { count: "exact", head: true });
-      if (count && count > 0) {
-        return jsonResponse({ error: "Registration closed" }, 403);
-      }
+      // No single-user gate — registration is open. Slot accounting happens in the
+      // 'register' action below, after the WebAuthn ceremony succeeds.
 
       const options = await generateRegistrationOptions({
         rpName: RP_NAME,
