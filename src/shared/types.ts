@@ -32,3 +32,32 @@ export interface ITunesSearchResponse {
   resultCount: number;
   results: ITunesAlbumResult[];
 }
+
+export type UserStatus = "pending_approval" | "active" | "rejected";
+
+export type AppState =
+  | "signup"
+  | "login"
+  | "waitlist"
+  | "rejected"
+  | "active";
+
+export interface User {
+  id: string;
+  email: string;
+  display_name: string | null;
+  status: UserStatus;
+  is_admin: boolean;
+  approved_at: string | null;
+  created_at: string;
+}
+
+export interface AdminUserRow extends User {
+  album_count: number;
+}
+
+export interface AppSettings {
+  id: 1;
+  max_active_users: number;
+  updated_at: string;
+}
