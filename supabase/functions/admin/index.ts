@@ -197,6 +197,35 @@ async function deleteUser(userId: string, callerId: string): Promise<Response> {
   return jsonResponse({ ok: true });
 }
 
+async function setMaxActiveUsers(value: unknown): Promise<Response> {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    return jsonResponse({ error: "value must be a positive integer" }, 400);
+  }
+
+  const db = getAdminClient();
+
+  // Don't allow shrinking below current active count
+  const { count: activeCount } = await db
+    .from("users")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active");
+
+  if (value < (activeCount ?? 0)) {
+    return jsonResponse(
+      { error: `Cannot set below current active count (${activeCount})` },
+      409
+    );
+  }
+
+  const { error } = await db
+    .from("app_settings")
+    .update({ max_active_users: value, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+
+  if (error) return jsonResponse({ error: error.message }, 500);
+  return jsonResponse({ ok: true, max_active_users: value });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -218,6 +247,9 @@ Deno.serve(async (req) => {
     }
     if (action === "delete") {
       return await deleteUser(params.userId, callerUserId);
+    }
+    if (action === "set-max-active-users") {
+      return await setMaxActiveUsers(params.value);
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
