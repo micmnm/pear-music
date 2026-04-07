@@ -139,6 +139,31 @@ async function approveUser(userId: string): Promise<Response> {
   return jsonResponse({ ok: true });
 }
 
+async function rejectUser(userId: string): Promise<Response> {
+  if (!userId) return jsonResponse({ error: "userId required" }, 400);
+  const db = getAdminClient();
+
+  const { data: target } = await db
+    .from("users")
+    .select("status, is_admin")
+    .eq("id", userId)
+    .single();
+
+  if (!target) return jsonResponse({ error: "User not found" }, 404);
+  if (target.is_admin) return jsonResponse({ error: "Cannot reject an admin" }, 409);
+  if (target.status !== "pending_approval") {
+    return jsonResponse({ error: `User is ${target.status}, not pending` }, 409);
+  }
+
+  const { error } = await db
+    .from("users")
+    .update({ status: "rejected" })
+    .eq("id", userId);
+
+  if (error) return jsonResponse({ error: error.message }, 500);
+  return jsonResponse({ ok: true });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -154,6 +179,9 @@ Deno.serve(async (req) => {
     }
     if (action === "approve") {
       return await approveUser(params.userId);
+    }
+    if (action === "reject") {
+      return await rejectUser(params.userId);
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
