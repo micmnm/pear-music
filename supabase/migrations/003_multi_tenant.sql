@@ -72,6 +72,7 @@ CREATE OR REPLACE FUNCTION public.count_users_by_status(target_status user_statu
   LANGUAGE sql
   SECURITY DEFINER
   STABLE
+  SET search_path = public, pg_temp
 AS $$
   SELECT count(*)::int FROM users WHERE status = target_status
 $$;
@@ -81,6 +82,7 @@ CREATE OR REPLACE FUNCTION public.count_total_users()
   LANGUAGE sql
   SECURITY DEFINER
   STABLE
+  SET search_path = public, pg_temp
 AS $$
   SELECT count(*)::int FROM users
 $$;
