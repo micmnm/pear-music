@@ -8,19 +8,20 @@
     <link rel="stylesheet" href="/src/client/style.css" />
   </head>
   <body>
-    <!-- Setup Screen (first visit) -->
-    <div id="setup-screen" class="screen hidden">
+    <!-- Signup Screen — anyone can register here -->
+    <div id="signup-screen" class="screen hidden">
       <div class="auth-container">
         <h1>Welcome to Pear Music</h1>
-        <p>Set up your account to get started.</p>
+        <p>Sign up with a passkey. <span id="signup-slots"></span></p>
         <input
-          id="setup-username"
-          type="text"
-          placeholder="Choose a username"
-          autocomplete="username"
+          id="signup-email"
+          type="email"
+          placeholder="your@email.com"
+          autocomplete="email"
         />
-        <button id="setup-btn" class="btn-primary">Register with Passkey</button>
+        <button id="signup-btn" class="btn-primary">Register with Passkey</button>
         <p id="auth-error" class="error-text hidden"></p>
+        <p class="muted">Already have an account? <a href="#" id="signup-to-login">Sign in</a></p>
       </div>
     </div>
 
@@ -30,12 +31,36 @@
         <h1>Pear Music</h1>
         <button id="login-btn" class="btn-primary">Sign in with Passkey</button>
         <p id="auth-error-login" class="error-text hidden"></p>
+        <p class="muted">No account yet? <a href="#" id="login-to-signup">Sign up</a></p>
+      </div>
+    </div>
+
+    <!-- Waitlist Screen — pending_approval users land here -->
+    <div id="waitlist-screen" class="screen hidden">
+      <div class="auth-container">
+        <h1>You're on the waitlist</h1>
+        <p>Pear Music is currently full. The admin has been notified and will let you in soon.</p>
+        <p class="muted">Try logging in again later — once you're approved, the app will load normally.</p>
+        <button id="waitlist-logout" class="btn-secondary">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Rejected Screen — rejected users land here (won't have a session, but kept for safety) -->
+    <div id="rejected-screen" class="screen hidden">
+      <div class="auth-container">
+        <h1>Registration declined</h1>
+        <p>Your registration was not approved.</p>
       </div>
     </div>
 
     <!-- Main Screen (authenticated) -->
     <div id="main-screen" class="screen hidden">
       <div id="app">
+        <header id="main-header">
+          <div id="pending-banner" class="hidden"></div>
+          <button id="admin-link" class="btn-secondary hidden">Admin</button>
+        </header>
+
         <!-- Player section -->
         <div id="player-section" class="hidden">
           <img id="artwork" src="" alt="Album artwork" />
@@ -76,6 +101,48 @@
 
         <!-- Album grid -->
         <div id="album-grid"></div>
+      </div>
+    </div>
+
+    <!-- Admin Screen — only visible to is_admin users -->
+    <div id="admin-screen" class="screen hidden">
+      <div id="admin-app">
+        <header id="admin-header">
+          <h1>Admin</h1>
+          <button id="admin-back-btn" class="btn-secondary">Back to library</button>
+        </header>
+
+        <section id="admin-pending-banner" class="hidden">
+          <span id="admin-pending-count"></span>
+        </section>
+
+        <section id="admin-settings">
+          <h2>Settings</h2>
+          <label>
+            Max active users:
+            <input id="admin-max-input" type="number" min="1" />
+          </label>
+          <button id="admin-max-save" class="btn-secondary">Save</button>
+          <p id="admin-capacity"></p>
+          <p id="admin-settings-error" class="error-text hidden"></p>
+        </section>
+
+        <section id="admin-users">
+          <h2>Users</h2>
+          <table id="admin-users-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Albums</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody"></tbody>
+          </table>
+          <p id="admin-users-error" class="error-text hidden"></p>
+        </section>
       </div>
     </div>
 
