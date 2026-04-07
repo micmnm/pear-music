@@ -294,12 +294,21 @@ Deno.serve(async (req) => {
         .update({ sign_count: verification.authenticationInfo.newCounter })
         .eq("id", cred.id);
 
-      // Get the user's email for session generation
-      const username = cred.users.username;
-      const email = `${username}@pear.music`;
+      // Look up the user's email and status from the joined users row
+      const userRow = cred.users as { email: string; status: string };
 
-      const session = await createSessionForUser(email);
-      return jsonResponse({ ...session, userId: cred.user_id });
+      if (userRow.status === "rejected") {
+        return jsonResponse({ error: "Registration declined" }, 403);
+      }
+
+      // Both 'pending_approval' and 'active' get a session — the frontend gates
+      // the UI by status. Pending users need a session to see the waitlist page.
+      const session = await createSessionForUser(userRow.email);
+      return jsonResponse({
+        ...session,
+        userId: cred.user_id,
+        status: userRow.status,
+      });
     }
 
     return jsonResponse({ error: "Unknown action" }, 400);
