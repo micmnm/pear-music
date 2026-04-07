@@ -225,17 +225,16 @@ Deno.serve(async (req) => {
 
     // === LOGIN OPTIONS ===
     if (action === "login-options") {
-      const { data: creds } = await db
-        .from("user_credentials")
-        .select("credential_id");
-
+      // SECURITY: do NOT enumerate credentials here. Returning all credential IDs
+      // leaks the total user count and per-user credential IDs to anyone hitting
+      // this endpoint. Use discoverable credentials instead — the browser will
+      // surface the user's saved passkeys for this RP without server enumeration.
+      // Registration already uses residentKey: "preferred", so existing passkeys
+      // are already discoverable.
       const options = await generateAuthenticationOptions({
         rpID: RP_ID,
         userVerification: "preferred",
-        allowCredentials: (creds || []).map((c: { credential_id: string }) => ({
-          id: c.credential_id,
-          type: "public-key",
-        })),
+        // No allowCredentials — relies on discoverable credentials.
       });
 
       const { data: challenge } = await db
