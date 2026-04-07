@@ -164,13 +164,46 @@ async function rejectUser(userId: string): Promise<Response> {
   return jsonResponse({ ok: true });
 }
 
+async function deleteUser(userId: string, callerId: string): Promise<Response> {
+  if (!userId) return jsonResponse({ error: "userId required" }, 400);
+  if (userId === callerId) {
+    return jsonResponse({ error: "Cannot delete yourself" }, 409);
+  }
+
+  const db = getAdminClient();
+
+  // Verify the target exists and is not another admin
+  const { data: target } = await db
+    .from("users")
+    .select("is_admin")
+    .eq("id", userId)
+    .single();
+
+  if (!target) return jsonResponse({ error: "User not found" }, 404);
+  if (target.is_admin) return jsonResponse({ error: "Cannot delete an admin" }, 409);
+
+  // Delete from custom users table — ON DELETE CASCADE removes
+  // library_items, user_settings, user_credentials.
+  const { error: usersError } = await db.from("users").delete().eq("id", userId);
+  if (usersError) return jsonResponse({ error: usersError.message }, 500);
+
+  // Also delete the corresponding Supabase Auth user
+  const { error: authError } = await db.auth.admin.deleteUser(userId);
+  if (authError) {
+    // The custom users row is already gone — log the orphan but return success.
+    console.warn(`Orphaned auth.users row ${userId}: ${authError.message}`);
+  }
+
+  return jsonResponse({ ok: true });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    await requireAdmin(req);
+    const { userId: callerUserId } = await requireAdmin(req);
     const body = await req.json();
     const { action, ...params } = body;
 
@@ -182,6 +215,9 @@ Deno.serve(async (req) => {
     }
     if (action === "reject") {
       return await rejectUser(params.userId);
+    }
+    if (action === "delete") {
+      return await deleteUser(params.userId, callerUserId);
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
