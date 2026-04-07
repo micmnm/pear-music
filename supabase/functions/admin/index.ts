@@ -94,6 +94,51 @@ async function listUsers(): Promise<Response> {
   return jsonResponse({ users: result });
 }
 
+async function approveUser(userId: string): Promise<Response> {
+  if (!userId) return jsonResponse({ error: "userId required" }, 400);
+  const db = getAdminClient();
+
+  // Capacity check: count current active users vs cap
+  const { count: activeCount } = await db
+    .from("users")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active");
+
+  const { data: settings } = await db
+    .from("app_settings")
+    .select("max_active_users")
+    .eq("id", 1)
+    .single();
+
+  const max = settings?.max_active_users ?? 15;
+  if ((activeCount ?? 0) >= max) {
+    return jsonResponse(
+      { error: `At capacity (${activeCount}/${max}). Raise max_active_users first.` },
+      409
+    );
+  }
+
+  // Verify the target is actually pending
+  const { data: target } = await db
+    .from("users")
+    .select("status")
+    .eq("id", userId)
+    .single();
+
+  if (!target) return jsonResponse({ error: "User not found" }, 404);
+  if (target.status !== "pending_approval") {
+    return jsonResponse({ error: `User is ${target.status}, not pending` }, 409);
+  }
+
+  const { error } = await db
+    .from("users")
+    .update({ status: "active", approved_at: new Date().toISOString() })
+    .eq("id", userId);
+
+  if (error) return jsonResponse({ error: error.message }, 500);
+  return jsonResponse({ ok: true });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -101,10 +146,14 @@ Deno.serve(async (req) => {
 
   try {
     await requireAdmin(req);
-    const { action } = await req.json();
+    const body = await req.json();
+    const { action, ...params } = body;
 
     if (action === "list-users") {
       return await listUsers();
+    }
+    if (action === "approve") {
+      return await approveUser(params.userId);
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
