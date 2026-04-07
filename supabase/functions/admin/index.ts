@@ -58,6 +58,42 @@ async function requireAdmin(req: Request): Promise<{ userId: string }> {
   return { userId: user.id };
 }
 
+async function listUsers(): Promise<Response> {
+  const db = getAdminClient();
+
+  // Fetch all users + their album counts in one round-trip via a stored
+  // expression. Two queries is simpler and fine at 15-user scale.
+  const { data: users, error: usersError } = await db
+    .from("users")
+    .select("id, email, display_name, status, is_admin, approved_at, created_at")
+    .order("created_at", { ascending: false });
+
+  if (usersError) {
+    return jsonResponse({ error: usersError.message }, 500);
+  }
+
+  const { data: counts, error: countsError } = await db
+    .from("library_items")
+    .select("user_id");
+
+  if (countsError) {
+    return jsonResponse({ error: countsError.message }, 500);
+  }
+
+  // Tally album counts per user_id
+  const countByUser = new Map<string, number>();
+  for (const row of counts ?? []) {
+    countByUser.set(row.user_id, (countByUser.get(row.user_id) ?? 0) + 1);
+  }
+
+  const result = (users ?? []).map((u) => ({
+    ...u,
+    album_count: countByUser.get(u.id) ?? 0,
+  }));
+
+  return jsonResponse({ users: result });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -67,7 +103,10 @@ Deno.serve(async (req) => {
     await requireAdmin(req);
     const { action } = await req.json();
 
-    // Action handlers (filled in by later tasks)
+    if (action === "list-users") {
+      return await listUsers();
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal error";
