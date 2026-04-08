@@ -15,8 +15,3 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: window.localStorage,
   },
 });
-
-// Debug: log every auth state transition so we can diagnose session-persistence issues.
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log("[auth] state change:", event, session ? `user=${session.user.email}` : "no session");
-});
