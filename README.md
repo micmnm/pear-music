@@ -120,6 +120,19 @@ The admin sees an "Admin" link in the header that opens a page where they can:
 - **No edit-email UI.** Email typos at signup are unfixable without admin intervention.
 - **Admin notifications are pull-based.** The admin sees a banner when they open the app — there's no push notification when someone signs up.
 
+### Migrating an existing single-user instance to multi-tenant
+
+If you're running a pre-multi-tenant version and applying migration 003 for the first time, the migration backfills your existing user row with `email = '<old-username>@pear.music'` (a synthetic address). You'll want to update it to a real email manually so login works reliably across the auth layers:
+
+```sql
+-- In the Supabase SQL Editor
+UPDATE users SET email = 'you@example.com' WHERE is_admin = true;
+```
+
+Then also update the corresponding `auth.users` row via **Supabase Dashboard → Authentication → Users → Edit email**. Both must match — the app reads from `public.users.email` and then asks Supabase Auth for a session using that same email.
+
+Your `display_name` will also be set to the new email. There's no UI to edit it in v1; if you want a different name, `UPDATE users SET display_name = 'Your Name' WHERE ...` in SQL.
+
 ## Deployment (Kubernetes)
 
 The included `.woodpecker.yml` provides a CI/CD pipeline that builds a Docker image, pushes to a registry, and deploys to a Kubernetes cluster. You'll need to configure:
