@@ -104,31 +104,88 @@ body::after {
 /* === Auth === */
 .auth-container {
   text-align: center;
-  padding: 24px;
-  max-width: 360px;
+  padding: 40px 32px;
+  max-width: 400px;
+  width: 100%;
+  margin: 0 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-color-scheme: light) {
+  .auth-container {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+  }
 }
 
 .auth-container h1 {
-  font-size: 1.5rem;
-  margin-bottom: 8px;
+  font-size: 1.75rem;
+  margin-bottom: 10px;
+  letter-spacing: -0.02em;
 }
 
 .auth-container p {
   color: var(--text-secondary);
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .auth-container input {
   width: 100%;
-  padding: 12px;
+  padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--bg-input);
   color: var(--text);
   font-size: 1rem;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
 }
 
+.auth-container input:focus {
+  border-color: var(--accent);
+}
+
+.auth-container input::placeholder {
+  color: var(--text-muted);
+}
+
+#signup-slots {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
+
+.auth-container .muted {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 24px;
+  margin-bottom: 0;
+}
+
+.auth-container .muted a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-container .muted a:hover {
+  text-decoration: underline;
+}
+
+/* === Buttons === */
 .btn-primary {
   width: 100%;
   background: var(--accent);
@@ -136,14 +193,35 @@ body::after {
   border: none;
   border-radius: 24px;
   padding: 14px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
 }
 
 .btn-primary:hover {
   background: var(--accent-hover);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card);
+  border-color: var(--text-muted);
 }
 
 .error-text {
