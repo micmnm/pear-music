@@ -224,6 +224,35 @@ body::after {
   border-color: var(--text-muted);
 }
 
+/* === Main header === */
+#main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  min-height: 40px;
+}
+
+#main-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+#user-email {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+@media (max-width: 480px) {
+  #user-email {
+    display: none;
+  }
+}
+
 .error-text {
   color: var(--accent);
   font-size: 0.85rem;

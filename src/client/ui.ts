@@ -189,6 +189,10 @@ export function showAdminLink(visible: boolean): void {
   $("admin-link").classList.toggle("hidden", !visible);
 }
 
+export function setUserEmail(email: string): void {
+  $("user-email").textContent = email;
+}
+
 export function showPendingBanner(count: number): void {
   const banner = $("pending-banner");
   if (count <= 0) {

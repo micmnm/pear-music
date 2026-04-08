@@ -18,6 +18,7 @@ import {
   renderAlbumGrid,
   renderItunesResults,
   showAdminLink,
+  setUserEmail,
   showPendingBanner,
   showSignupSlots,
   setAdminCapacity,
@@ -93,9 +94,10 @@ async function initMainScreen(): Promise<void> {
   if (session) {
     const { data: me } = await supabase
       .from("users")
-      .select("is_admin")
+      .select("email, is_admin")
       .eq("id", session.user.id)
       .single();
+    if (me?.email) setUserEmail(me.email);
     showAdminLink(!!me?.is_admin);
 
     if (me?.is_admin) {
@@ -275,6 +277,11 @@ async function handleWaitlistLogout(): Promise<void> {
   location.reload();
 }
 
+async function handleLogout(): Promise<void> {
+  await logout();
+  location.reload();
+}
+
 async function refreshSignupSlots(): Promise<void> {
   try {
     const [active, max] = await Promise.all([
@@ -316,6 +323,7 @@ async function init(): Promise<void> {
   // Main screen
   document.getElementById("shuffle-btn")!.addEventListener("click", handleShuffle);
   document.getElementById("admin-link")!.addEventListener("click", showAdminPage);
+  document.getElementById("logout-btn")!.addEventListener("click", handleLogout);
   document.getElementById("search-input")!.addEventListener("input", () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(handleSearch, 300);
