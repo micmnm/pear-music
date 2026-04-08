@@ -30,26 +30,32 @@ function getAdminClient() {
  */
 async function requireAdmin(req: Request): Promise<{ userId: string }> {
   const authHeader = req.headers.get("Authorization");
+  console.log("[admin] authHeader present:", !!authHeader);
   if (!authHeader) {
-    throw new Error("Unauthorized");
+    throw new Error("Unauthorized: no Authorization header");
   }
 
-  // Decode the caller's JWT via supabase-js (uses the user's token, not service key)
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user }, error } = await userClient.auth.getUser();
-  if (error || !user) {
-    throw new Error("Unauthorized");
+  // Extract the JWT token (strip "Bearer " prefix)
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+
+  // Use the admin (service-role) client's auth.getUser(token) — this
+  // decodes and validates the JWT directly against the auth service
+  // without needing a separate user-scoped client.
+  const adminDb = getAdminClient();
+  const { data: { user }, error: getUserError } = await adminDb.auth.getUser(token);
+  console.log("[admin] getUser result:", user ? `user=${user.id}` : `error=${getUserError?.message}`);
+  if (getUserError || !user) {
+    throw new Error(`Unauthorized: ${getUserError?.message || "no user"}`);
   }
 
   // Authoritative admin check against the database
-  const adminDb = getAdminClient();
-  const { data: row } = await adminDb
+  const { data: row, error: rowError } = await adminDb
     .from("users")
     .select("is_admin")
     .eq("id", user.id)
     .single();
+
+  console.log("[admin] is_admin lookup:", rowError ? `error=${rowError.message}` : `is_admin=${row?.is_admin}`);
 
   if (!row?.is_admin) {
     throw new Error("Forbidden");
