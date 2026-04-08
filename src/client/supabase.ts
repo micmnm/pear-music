@@ -11,9 +11,12 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    // We set the session server-side via setSession() after WebAuthn;
-    // we never use Supabase's magic-link URL redirect flow.
     detectSessionInUrl: false,
-    storageKey: "pear-music-auth",
+    storage: window.localStorage,
   },
+});
+
+// Debug: log every auth state transition so we can diagnose session-persistence issues.
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log("[auth] state change:", event, session ? `user=${session.user.email}` : "no session");
 });
