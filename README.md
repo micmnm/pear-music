@@ -33,18 +33,27 @@ npm install
 1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) and create a new project (free tier)
 2. Note your **Project URL** and **anon key** from Settings > API
 
-### 3. Run database migration
+### 3. Run database migrations
 
-In the Supabase SQL Editor, paste and run the contents of `supabase/migrations/001_schema.sql`.
-
-### 4. Deploy Edge Functions
+Apply all migrations in `supabase/migrations/` in order (001 → 002 → 003 → 004). Easiest path via the Supabase CLI after linking your project:
 
 ```bash
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+```
+
+Or paste each file's contents into the Supabase SQL Editor one at a time, in filename order.
+
+### 4. Deploy Edge Functions
+
+```bash
 supabase functions deploy auth
 supabase functions deploy metadata
+supabase functions deploy admin --no-verify-jwt
 ```
+
+> The `admin` function is deployed with `--no-verify-jwt` because it performs its own authorization check (reads the caller's JWT and verifies `is_admin = true` in the database). The gateway's built-in JWT verification is redundant and was found to interfere during the rollout.
 
 ### 5. Set Edge Function secrets
 
@@ -124,17 +133,28 @@ Create your own `k8s/` directory (gitignored) with deployment, service, and ingr
 ## Project structure
 
 ```
-src/client/           Frontend (Vite + TypeScript)
-  auth.ts             Passkey registration/login
-  library.ts          Library CRUD via Supabase
-  search.ts           iTunes search + lookup
-  player.ts           Apple Music embed player
-  ui.ts               DOM rendering
-  main.ts             App entry point
+src/client/             Frontend (Vite + TypeScript)
+  main.ts               App entry point + routing
+  auth.ts               Passkey registration/login, state machine
+  admin.ts              Admin API client (wraps admin Edge Function)
+  library.ts            Library CRUD via Supabase
+  search.ts             iTunes search + lookup
+  player.ts             Apple Music embed player
+  settings.ts           Per-user storefront preference
+  url-parser.ts         Apple Music URL → collection id
+  supabase.ts           Supabase JS client singleton
+  ui.ts                 DOM rendering + screen management
+src/shared/
+  types.ts              Types shared between client and Edge Functions
 supabase/
-  functions/auth/     WebAuthn Edge Function
-  functions/metadata/ iTunes API proxy Edge Function
-  migrations/         Database schema
+  functions/auth/       WebAuthn registration + login
+  functions/admin/      Admin actions (list/approve/reject/delete/set-cap)
+  functions/metadata/   iTunes API proxy (CORS workaround)
+  functions/_shared/    Pure functions shared across Edge Functions
+  migrations/           Database schema (run in filename order)
+tests/
+  client/               Vitest unit tests for pure client logic
+  functions/            Vitest unit tests for pure Edge Function logic
 ```
 
 ## Tech stack
