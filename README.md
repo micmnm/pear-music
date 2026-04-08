@@ -1,8 +1,8 @@
 # Pear Music
 
-A personal Apple Music library manager. Add albums, shuffle your collection, search iTunes to discover new music. Plays via Apple Music embedded player.
+An Apple Music library manager. Add albums, shuffle your collection, search iTunes to discover new music. Plays via Apple Music embedded player.
 
-Single-user app with passkey (WebAuthn) authentication. No passwords.
+Run as a personal single-user app, or deploy as a multi-user instance with admin controls. Passkey (WebAuthn) authentication, no passwords. The first user to sign up on a fresh deploy becomes the admin; subsequent users can join up to a soft cap of 15 active users, after which they go on a waitlist for admin approval.
 
 ## How it works
 
@@ -90,6 +90,26 @@ docker build \
   -t pear-music .
 docker run -p 80:80 pear-music
 ```
+
+## Multi-tenant mode
+
+Pear Music supports multiple users on a single deployment. The first user to sign up on a fresh deploy automatically becomes the admin. Subsequent users are admitted instantly until the active-user cap (default 15) is reached, after which new signups go onto a waitlist for admin approval.
+
+### Admin features
+
+The admin sees an "Admin" link in the header that opens a page where they can:
+
+- See all users (active, pending approval, rejected) with their join date and album count.
+- Approve / reject users on the waitlist.
+- Delete active users (frees a slot).
+- Change the maximum active user cap (cannot shrink below the current active count).
+
+### Limitations (intentional, by design)
+
+- **No email is ever sent.** Email addresses are unverified — they're identifiers/labels only.
+- **Lost device = lost library.** There is no passkey re-enrollment in the v1 multi-tenant build. If a user loses their device, recovery is admin-mediated: the admin deletes the account and the user re-registers from scratch.
+- **No edit-email UI.** Email typos at signup are unfixable without admin intervention.
+- **Admin notifications are pull-based.** The admin sees a banner when they open the app — there's no push notification when someone signs up.
 
 ## Deployment (Kubernetes)
 
