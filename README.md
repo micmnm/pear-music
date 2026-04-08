@@ -135,13 +135,27 @@ Your `display_name` will also be set to the new email. There's no UI to edit it 
 
 ## Deployment (Kubernetes)
 
-The included `.woodpecker.yml` provides a CI/CD pipeline that builds a Docker image, pushes to a registry, and deploys to a Kubernetes cluster. You'll need to configure:
+The included `.woodpecker.yml` provides a CI/CD pipeline that builds a Docker image, pushes it to a registry, and rolls out a Kubernetes deployment. It is an example — adapt or replace it with GitHub Actions, GitLab CI, or any other tool that can run the same steps.
 
-- A Docker registry
-- A Kubernetes cluster with nginx ingress and cert-manager
-- Woodpecker CI secrets (see comments in `.woodpecker.yml`)
+You'll need:
 
-Create your own `k8s/` directory (gitignored) with deployment, service, and ingress manifests for your domain.
+- A Docker registry you can push to
+- A Kubernetes cluster with an ingress controller (e.g. nginx) and TLS (e.g. cert-manager)
+- An existing `pear-music` Deployment + Service + Ingress in the cluster (manifests are **not** shipped in the repo — bring your own, customized for your domain and ingress class)
+
+Configure these secrets in the Woodpecker UI → Repo → Settings → Secrets:
+
+| Secret | Description |
+|---|---|
+| `supabase_url` | Same value as `VITE_SUPABASE_URL` |
+| `supabase_anon_key` | Same value as `VITE_SUPABASE_ANON_KEY` |
+| `docker_registry` | Registry host, e.g. `registry.example.com` |
+| `docker_registry_user` | Registry username |
+| `docker_registry_password` | Registry password |
+| `kubeconfig` | Full kubeconfig file contents (multi-line) |
+| `k8s_namespace` | Namespace to deploy into |
+
+The pipeline assumes a `Deployment` named `pear-music` with a container named `web` already exists. The `deploy` step only updates the image via `kubectl set image`; it does not create resources from scratch.
 
 ## Project structure
 
