@@ -1,7 +1,7 @@
 # =============================================================================
 # Woodpecker CI Pipeline for Pear Music (static SPA)
 # =============================================================================
-# Branch: main - Build, push Docker image, auto-deploy to LKE
+# Branch: main - Build, push Docker image, auto-deploy to Kubernetes
 # =============================================================================
 
 when:
@@ -54,7 +54,7 @@ steps:
     depends_on: [build]
 
   # ---------------------------------------------------------------------------
-  # Deploy to LKE
+  # Deploy to Kubernetes
   # ---------------------------------------------------------------------------
   deploy:
     image: *kubectl_image
@@ -64,21 +64,24 @@ steps:
         from_secret: kubeconfig
       DOCKER_REGISTRY:
         from_secret: docker_registry
+      K8S_NAMESPACE:
+        from_secret: k8s_namespace
     commands:
       - mkdir -p /tmp/.kube
       - echo "$KUBECONFIG_SECRET" > /tmp/.kube/config
       - chmod 600 /tmp/.kube/config
-      - kubectl --kubeconfig=/tmp/.kube/config set image deployment/pear-music web="$DOCKER_REGISTRY/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}" -n mltru-com
-      - kubectl --kubeconfig=/tmp/.kube/config rollout status deployment/pear-music -n mltru-com --timeout=120s
+      - kubectl --kubeconfig=/tmp/.kube/config set image deployment/pear-music web="$DOCKER_REGISTRY/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}" -n "$K8S_NAMESPACE"
+      - kubectl --kubeconfig=/tmp/.kube/config rollout status deployment/pear-music -n "$K8S_NAMESPACE" --timeout=120s
     depends_on: [docker]
 
 # =============================================================================
 # Required Secrets (configure in Woodpecker UI)
 # =============================================================================
-# docker_registry          - Synology registry URL
+# docker_registry          - Docker registry URL
 # docker_registry_user     - Registry username
 # docker_registry_password - Registry password
-# kubeconfig               - Kubeconfig for LKE cluster
+# kubeconfig               - Kubeconfig for the target Kubernetes cluster
+# k8s_namespace            - Namespace to deploy into
 # supabase_url             - Supabase project URL
 # supabase_anon_key        - Supabase anon key
 # =============================================================================
