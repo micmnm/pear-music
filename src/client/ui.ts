@@ -9,16 +9,19 @@ function $(id: string): HTMLElement {
 
 // --- Screen management ---
 
-export function showScreen(screen: "setup" | "login" | "main"): void {
-  $("setup-screen").classList.toggle("hidden", screen !== "setup");
-  $("login-screen").classList.toggle("hidden", screen !== "login");
-  $("main-screen").classList.toggle("hidden", screen !== "main");
+export type Screen = "signup" | "login" | "waitlist" | "rejected" | "main" | "admin";
+
+export function showScreen(screen: Screen): void {
+  const screens: Screen[] = ["signup", "login", "waitlist", "rejected", "main", "admin"];
+  for (const s of screens) {
+    $(`${s}-screen`).classList.toggle("hidden", s !== screen);
+  }
 }
 
 // --- Auth UI ---
 
-export function getSetupUsername(): string {
-  return ($("setup-username") as HTMLInputElement).value.trim();
+export function getSignupEmail(): string {
+  return ($("signup-email") as HTMLInputElement).value.trim();
 }
 
 export function showAuthError(message: string): void {
@@ -178,4 +181,121 @@ export function renderItunesResults(
     });
     grid.appendChild(card);
   }
+}
+
+// --- Pending banner / admin link in main header ---
+
+export function showAdminLink(visible: boolean): void {
+  $("admin-link").classList.toggle("hidden", !visible);
+}
+
+export function showPendingBanner(count: number): void {
+  const banner = $("pending-banner");
+  if (count <= 0) {
+    banner.classList.add("hidden");
+    return;
+  }
+  banner.textContent = `${count} user${count === 1 ? "" : "s"} waiting for approval`;
+  banner.classList.remove("hidden");
+}
+
+// --- Signup screen helpers ---
+
+export function showSignupSlots(active: number, max: number): void {
+  $("signup-slots").textContent = `${active} / ${max} slots filled`;
+}
+
+// --- Admin screen helpers ---
+
+export function setAdminCapacity(active: number, max: number): void {
+  $("admin-capacity").textContent = `Currently active: ${active} / ${max}`;
+}
+
+export function setAdminMaxInput(max: number): void {
+  ($("admin-max-input") as HTMLInputElement).value = String(max);
+}
+
+export function getAdminMaxInput(): number {
+  return parseInt(($("admin-max-input") as HTMLInputElement).value, 10);
+}
+
+export function showAdminPendingBanner(count: number): void {
+  const banner = $("admin-pending-banner");
+  if (count <= 0) {
+    banner.classList.add("hidden");
+    return;
+  }
+  ($("admin-pending-count")).textContent = `${count} user${count === 1 ? "" : "s"} waiting for approval`;
+  banner.classList.remove("hidden");
+}
+
+export interface AdminUserRowView {
+  id: string;
+  email: string;
+  status: "pending_approval" | "active" | "rejected";
+  is_admin: boolean;
+  created_at: string;
+  album_count: number;
+}
+
+export function renderAdminUsers(
+  rows: AdminUserRowView[],
+  handlers: {
+    onApprove: (id: string) => void;
+    onReject: (id: string) => void;
+    onDelete: (id: string) => void;
+  }
+): void {
+  const tbody = $("admin-users-tbody");
+  tbody.innerHTML = "";
+
+  for (const row of rows) {
+    const tr = document.createElement("tr");
+
+    const adminBadge = row.is_admin ? " ★" : "";
+    tr.innerHTML = `
+      <td>${escapeHtml(row.email)}${adminBadge}</td>
+      <td>${row.status}</td>
+      <td>${new Date(row.created_at).toISOString().slice(0, 10)}</td>
+      <td>${row.album_count}</td>
+      <td class="admin-actions"></td>
+    `;
+
+    const actions = tr.querySelector(".admin-actions")!;
+
+    if (row.status === "pending_approval") {
+      const approve = document.createElement("button");
+      approve.textContent = "Approve";
+      approve.className = "btn-secondary";
+      approve.addEventListener("click", () => handlers.onApprove(row.id));
+      actions.appendChild(approve);
+
+      const reject = document.createElement("button");
+      reject.textContent = "Reject";
+      reject.className = "btn-secondary";
+      reject.addEventListener("click", () => handlers.onReject(row.id));
+      actions.appendChild(reject);
+    } else if (row.status === "active" && !row.is_admin) {
+      const del = document.createElement("button");
+      del.textContent = "Delete";
+      del.className = "btn-secondary";
+      del.addEventListener("click", () => {
+        if (confirm(`Delete ${row.email}? This is permanent.`)) {
+          handlers.onDelete(row.id);
+        }
+      });
+      actions.appendChild(del);
+    }
+
+    tbody.appendChild(tr);
+  }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
