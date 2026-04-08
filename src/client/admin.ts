@@ -2,8 +2,17 @@ import { supabase } from "./supabase.js";
 import type { AdminUserRow } from "../shared/types.js";
 
 async function callAdmin<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
+  // Explicitly attach the current session token. supabase.functions.invoke
+  // doesn't reliably auto-attach it, and the admin function is gated with
+  // verify_jwt: true so it returns 401 at the gateway without a Bearer.
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
   const { data, error } = await supabase.functions.invoke("admin", {
     body: { action, ...params },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
   });
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
