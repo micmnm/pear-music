@@ -1,8 +1,11 @@
 node_modules/
 dist/
 .env
+.env.*.local
 k8s/
 supabase/.env
 supabase/.temp/
 .claude/
 docs/superpowers/
+**/.DS_Store
+*.log
