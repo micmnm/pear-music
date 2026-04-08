@@ -13,8 +13,11 @@ function base64Encode(data: Uint8Array): string {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RP_NAME = "Pear Music";
-const RP_ID = Deno.env.get("WEBAUTHN_RP_ID") || "music.mltru.com";
-const RP_ORIGIN = Deno.env.get("WEBAUTHN_ORIGIN") || "https://music.mltru.com";
+const RP_ID = Deno.env.get("WEBAUTHN_RP_ID");
+const RP_ORIGIN = Deno.env.get("WEBAUTHN_ORIGIN");
+if (!RP_ID || !RP_ORIGIN) {
+  throw new Error("WEBAUTHN_RP_ID and WEBAUTHN_ORIGIN must be set in Edge Function secrets");
+}
 
 function getAdminClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
