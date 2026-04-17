@@ -27,10 +27,14 @@ export async function checkAppState(): Promise<AppState> {
     .eq("id", session.user.id)
     .single();
 
-  if (error || !me) {
-    console.error("failed to read own user row:", error);
-    return "login";
+  if (error) {
+    if (error.code === "PGRST116") return "login"; // no row → not registered
+    // Transient error (network, deploy downtime) — trust the existing session
+    console.warn("checkAppState: transient error, trusting session:", error.message);
+    return "active";
   }
+
+  if (!me) return "login";
 
   if (me.status === "rejected") return "rejected";
   if (me.status === "pending_approval") return "waitlist";
