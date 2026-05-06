@@ -1,7 +1,7 @@
 # =============================================================================
 # Woodpecker CI Pipeline for Pear Music (static SPA)
 # =============================================================================
-# Branch: main - Build, push Docker image, auto-deploy to Kubernetes
+# Branch: main - Build, push Docker image to GHCR, auto-deploy to Kubernetes
 # =============================================================================
 
 when:
@@ -12,6 +12,7 @@ variables:
   - &node_image node:24-alpine
   - &docker_image docker:24
   - &kubectl_image alpine/k8s:1.29.0
+  - &image ghcr.io/micmnm/pear-music
 
 steps:
   # ---------------------------------------------------------------------------
@@ -29,28 +30,26 @@ steps:
       - npm run build
 
   # ---------------------------------------------------------------------------
-  # Build and push Docker image
+  # Build and push Docker image to GHCR
   # ---------------------------------------------------------------------------
   docker:
     image: *docker_image
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      DOCKER_REGISTRY:
-        from_secret: docker_registry
-      DOCKER_REGISTRY_USER:
-        from_secret: docker_registry_user
-      DOCKER_REGISTRY_PASSWORD:
-        from_secret: docker_registry_password
+      GHCR_USER:
+        from_secret: ghcr_user
+      GHCR_TOKEN:
+        from_secret: ghcr_token
       VITE_SUPABASE_URL:
         from_secret: supabase_url
       VITE_SUPABASE_ANON_KEY:
         from_secret: supabase_anon_key
     commands:
-      - docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" "$DOCKER_REGISTRY"
-      - docker build --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" -t "$DOCKER_REGISTRY/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}" -t "$DOCKER_REGISTRY/pear-music:latest" -f Dockerfile .
-      - docker push "$DOCKER_REGISTRY/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}"
-      - docker push "$DOCKER_REGISTRY/pear-music:latest"
+      - echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+      - docker build --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" -t "ghcr.io/micmnm/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}" -t "ghcr.io/micmnm/pear-music:latest" -f Dockerfile .
+      - docker push "ghcr.io/micmnm/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}"
+      - docker push "ghcr.io/micmnm/pear-music:latest"
     depends_on: [build]
 
   # ---------------------------------------------------------------------------
@@ -62,26 +61,29 @@ steps:
       HOME: /tmp
       KUBECONFIG_SECRET:
         from_secret: kubeconfig
-      DOCKER_REGISTRY:
-        from_secret: docker_registry
       K8S_NAMESPACE:
         from_secret: k8s_namespace
     commands:
       - mkdir -p /tmp/.kube
       - echo "$KUBECONFIG_SECRET" > /tmp/.kube/config
       - chmod 600 /tmp/.kube/config
-      - kubectl --kubeconfig=/tmp/.kube/config set image deployment/pear-music web="$DOCKER_REGISTRY/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}" -n "$K8S_NAMESPACE"
+      - kubectl --kubeconfig=/tmp/.kube/config set image deployment/pear-music web="ghcr.io/micmnm/pear-music:$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}" -n "$K8S_NAMESPACE"
       - kubectl --kubeconfig=/tmp/.kube/config rollout status deployment/pear-music -n "$K8S_NAMESPACE" --timeout=120s
     depends_on: [docker]
 
 # =============================================================================
 # Required Secrets (configure in Woodpecker UI)
 # =============================================================================
-# docker_registry          - Docker registry URL
-# docker_registry_user     - Registry username
-# docker_registry_password - Registry password
-# kubeconfig               - Kubeconfig for the target Kubernetes cluster
-# k8s_namespace            - Namespace to deploy into
-# supabase_url             - Supabase project URL
-# supabase_anon_key        - Supabase anon key
+# ghcr_user        - GitHub username (for ghcr.io login)
+# ghcr_token       - GitHub PAT with write:packages scope
+# kubeconfig       - Kubeconfig for the target Kubernetes cluster
+# k8s_namespace    - Namespace to deploy into
+# supabase_url     - Supabase project URL
+# supabase_anon_key - Supabase anon key
+#
+# Required cluster secret (in target namespace):
+#   kubectl -n <ns> create secret docker-registry registry-credentials \
+#     --docker-server=ghcr.io \
+#     --docker-username=<github-user> \
+#     --docker-password=<github-pat-read:packages>
 # =============================================================================
