@@ -7,3 +7,9 @@ supabase/
 docs/
 tests/
 *.md
+.env.*
+.claude/
+.cursor/
+.mcp.json
+CLAUDE.md
+AGENTS.md
